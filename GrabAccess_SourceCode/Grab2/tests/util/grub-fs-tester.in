@@ -1,0 +1,1583 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+fs="$1"
+
+GRUBFSTEST="@builddir@/grub-fstest"
+
+tempdir=`mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` ||
+{ echo "Failed to make temporary directory"; exit 99; }
+
+# xorriso -as mkisofs options to ignore locale when processing file names and
+# FSLABEL. This is especially needed for the conversion to Joliet UCS-2.
+XORRISOFS_CHARSET="-input-charset UTF-8 -output-charset UTF-8"
+
+# This wrapper is to ease insertion of valgrind or time statistics
+run_it () {
+    LC_ALL=C "$GRUBFSTEST" "$@"
+}
+
+range() {
+    range_counter="$1"
+    while test "$range_counter" -le "$2"; do
+	echo "$range_counter"
+	range_counter="$((range_counter + $3))"
+    done
+}
+
+powrange() {
+    range_counter="$1"
+    while test "$range_counter" -le "$2"; do
+	echo "$range_counter"
+	range_counter="$((range_counter * 2))"
+    done
+}
+
+run_grubfstest () {
+    need_images=
+    for i in $(range 0 $((NEED_IMAGES_N-1)) 1); do
+	need_images="$need_images $FSIMAGEP${i}.img";
+    done
+
+    run_it -c $NEED_IMAGES_N $need_images  "$@"
+}
+
+# OS LIMITATION: GNU/Linux has no AFS support, so we use a premade image and a reference tar file. I.a. no multiblocksize test
+
+MINLOGSECSIZE=9
+MAXLOGSECSIZE=9
+case x"$fs" in
+    xntfs*)
+	MINLOGSECSIZE=8
+	MAXLOGSECSIZE=12;;
+    xvfat*|xmsdos*)
+	MINLOGSECSIZE=9
+	#  OS LIMITATION: It could go up to 32768 but Linux rejects sector sizes > 4096
+	MAXLOGSECSIZE=12;;
+    xext*)
+	MINLOGSECSIZE=8
+	MAXLOGSECSIZE=12;;
+    xbtrfs*)
+	MINLOGSECSIZE=12
+	#  OS LIMITATION: It could go up to 32768 but Linux rejects sector sizes > 4096
+	MAXLOGSECSIZE=12;;
+    xxfs)
+	MINLOGSECSIZE=9
+	# OS LIMITATION: GNU/Linux doesn't accept > 4096
+	MAXLOGSECSIZE=12;;
+    xxfs_crc)
+	MINLOGSECSIZE=9
+	# OS LIMITATION: GNU/Linux doesn't accept > 1024
+	MAXLOGSECSIZE=10;;
+    xzfs*)
+	# OS LIMITATION: zfs-fuse hangs when creating zpool with sectors <=256B.
+	MINLOGSECSIZE=9
+	# OS LIMITATION: zfs-fuse fails with >= 32K sectors.
+	# OS limitation: zfs-fuse always uses ashift=9 with loop devices
+	MAXLOGSECSIZE=9;;
+esac
+for LOGSECSIZE in $(range "$MINLOGSECSIZE" "$MAXLOGSECSIZE" 1); do
+    SECSIZE="$((1 << LOGSECSIZE))"
+    MINBLKSIZE=512
+    MAXBLKSIZE=512
+    BLKSTEP=0
+    case x"$fs" in
+	xntfs*)
+	    MINBLKSIZE=$SECSIZE
+	    MAXBLKSIZE=65536
+	    if [ x"$SECSIZE" = x256 ]; then
+		MINBLKSIZE=512
+		MAXBLKSIZE=32768
+	    fi
+	    ;;
+	xvfat* | xmsdos*)
+	    MINBLKSIZE=$SECSIZE
+	    MAXBLKSIZE=$((128*SECSIZE))
+	    ;;
+	xexfat*)
+	    MINBLKSIZE=$SECSIZE
+	    # It could go further but it requires more and more space
+	    MAXBLKSIZE=8286208
+	    ;;
+	xhfs)
+	    MINBLKSIZE=512
+	    # OS LIMITATION: should be 1048576 but linux hangs on unmnount with
+	    # >= 524288
+	    MAXBLKSIZE=262144
+	    ;;
+	xhfsplus | xhfsplus_casesens | xhfsplus_wrap)
+	    MINBLKSIZE=512
+	    MAXBLKSIZE=1048576
+	    ;;
+	xnilfs2)
+	    # nilfs2 supports blocksizes from 1024 to 4096
+	    # but non-4096 results in kernel oops in some cases,
+	    # avoid it.
+	    MINBLKSIZE=4096
+	    MAXBLKSIZE=4096
+	    ;;
+	xsfs*)
+	    MINBLKSIZE=512
+	    MAXBLKSIZE=4096
+	    ;;
+	xaffs | xaffs_intl)
+	    MINBLKSIZE=512
+	    MAXBLKSIZE=4096
+	    ;;
+	xreiserfs*)
+	    # OS LIMITATION: mkreiserfs says block sizes smaller than 4 KiB are
+	    # not supported and bails. Its been this way since at least 2014.
+	    MINBLKSIZE=4096
+	    # OS LIMITATION: 8192 isn't supported.
+	    MAXBLKSIZE=4096
+	    ;;
+	x"mdraid"*)
+	    MINBLKSIZE=4096
+	    # OS LIMITATION: Linux oopses with >=32768K
+	    MAXBLKSIZE=$((16384*1024))
+	    ;;
+	x"lvm_raid1"* | x"lvm_raid4" | x"lvm_raid5" | x"lvm_raid6")
+	    # OS LIMITATION: Linux crashes with less than 16384
+	    MINBLKSIZE=16384
+	    # Could go further but what's the point?
+	    MAXBLKSIZE=$((65536*1024))
+	    ;;
+	x"lvm_mirrorall")
+	    MINBLKSIZE=2048
+	    # Could go further but what's the point?
+	    MAXBLKSIZE=$((65536*1024))
+	    ;;
+	x"lvm_mirror1")
+	    MINBLKSIZE=4096
+	    # Could go further but what's the point?
+	    MAXBLKSIZE=$((65536*1024))
+	    ;;
+	x"lvm_stripe")
+	    MINBLKSIZE=4096
+	    # Could go further but what's the point?
+	    MAXBLKSIZE=$((65536*1024))
+	    ;;
+	x"lvm"*)
+	    MINBLKSIZE=1024
+	    # Could go further but what's the point?
+	    MAXBLKSIZE=$((65536*1024))
+	    ;;
+	xext4_encrypt)
+	    # OS LIMITATION: Linux currently only allows the 'encrypt' feature
+	    # in combination with block_size = PAGE_SIZE (4096 bytes on x86).
+	    MINBLKSIZE=$(getconf PAGE_SIZE)
+	    MAXBLKSIZE=$MINBLKSIZE
+	    ;;
+	xext*)
+	    MINBLKSIZE=1024
+	    if [ $MINBLKSIZE -lt $SECSIZE ]; then
+		MINBLKSIZE=$SECSIZE
+	    fi
+	    MAXBLKSIZE=4096
+	    ;;
+	xsquash*)
+	    MINBLKSIZE=4096
+	    MAXBLKSIZE=1048576;;
+	xxfs|xf2fs)
+	    MINBLKSIZE=$SECSIZE
+	    # OS Limitation: GNU/Linux doesn't accept > 4096
+	    MAXBLKSIZE=4096;;
+	xxfs_crc)
+	    # OS Limitation: GNU/Linux doesn't accept != 1024
+	    MINBLKSIZE=1024
+	    MAXBLKSIZE=1024;;
+	xudf)
+	    MINBLKSIZE=1024
+	    MAXBLKSIZE=4096;;
+	xbfs)
+	    MINBLKSIZE=1024
+	    MAXBLKSIZE=8192;;
+	xufs*)
+	    MINBLKSIZE=4096
+	    # OS Limitation: Linux rejects 65536 blocks.
+	    MAXBLKSIZE=32768;;
+	xminix3)
+	    # OS LIMITATION: Linux rejects non-power-of-two blocks.
+	    # OS LIMITATION: Linux rejects > 4096.
+	    MINBLKSIZE=1024
+	    MAXBLKSIZE=1024;;
+    esac
+    if test "$BLKSTEP" -eq 0; then
+	blksizes="$(powrange "$MINBLKSIZE" "$MAXBLKSIZE")"
+    else
+	blksizes="$(range "$MINBLKSIZE" "$MAXBLKSIZE" "$BLKSTEP")"
+    fi
+    for BLKSIZE in $blksizes; do
+	MAXDEVICES=1
+	MINDEVICES=1
+	export fs
+	case x"$fs" in
+	    x"zfs_raidz" | x"zfs_stripe" | x"zfs_mirror" | xbtrfs_raid0 \
+		| xbtrfs_raid1 | x"mdraid"*"_raid4" | x"mdraid"*"_raid5" \
+		| x"mdraid"*"_linear" \
+		| x"mdraid"*"_raid10" | xlvm_raid1* | xlvm_mirror1 | xlvm_mirrorall)
+		MINDEVICES=2
+		MAXDEVICES=7
+		;;
+	    xbtrfs_raid10)
+		MINDEVICES=4
+		MAXDEVICES=7
+		;;
+	    x"zfs_raidz2"| xlvm_raid5 | xlvm_raid4)
+		MINDEVICES=3
+		MAXDEVICES=7;;
+	    x"zfs_raidz3" | x"mdraid"*"_raid6")
+		MINDEVICES=4
+		MAXDEVICES=7;;
+	    xlvm_raid6)
+		MINDEVICES=5
+		MAXDEVICES=7;;
+	    x"mdraid"*"_raid0" | x"mdraid"*"_raid1" | x"lvm" | xlvm_stripe)
+		MINDEVICES=1
+		MAXDEVICES=7;;
+	esac
+
+	for NDEVICES in $(range "$MINDEVICES" "$MAXDEVICES" 1); do
+	    export NDEVICES
+	    unset FSIMAGEP
+	    FSIMAGEP="${tempdir}/${fs}_${SECSIZE}_${BLKSIZE}_${NDEVICES}_"
+	    export FSIMAGEP
+	    unset NEED_IMAGES;
+
+	    case x$fs in
+		# RAID 1 has to work with even one device of the set.
+		xzfs_mirror | x"mdraid"*"_raid1" | xlvm_mirrorall | xlvm_raid1all)
+		    NEED_IMAGES_N=1;;
+		# Degrade raidz by removing 3 devices
+		xzfs_raidz3)
+		    NEED_IMAGES_N=$((NDEVICES-3));;
+		# Degrade raidz by removing 2 devices
+		xzfs_raidz2 | x"mdraid"*"_raid6" | x"lvm_raid6")
+		    NEED_IMAGES_N=$((NDEVICES-2));;
+		# Degrade raidz and btrfs RAID1 by removing one device
+		xbtrfs_raid1 | xbtrfs_raid10 | xzfs_raidz | x"mdraid"*"_raid4" \
+		    | x"mdraid"*"_raid5" | x"mdraid"*"_raid10" | xlvm_mirror1 \
+		    | x"lvm_raid1" | x"lvm_raid4" | x"lvm_raid5")
+		    NEED_IMAGES_N=$((NDEVICES-1));;
+		*)
+		    NEED_IMAGES_N=$NDEVICES;;
+	    esac
+	    export NEED_IMAGES_N
+
+	    MNTPOINTRO="${tempdir}/${fs}_ro"
+	    MNTPOINTRW="${tempdir}/${fs}_rw"
+	    MOUNTOPTS=""
+	    MOUNTFS="$fs"
+	    MASTER="${tempdir}/master"
+	    FSLABEL="grub_;/testé莭莽茝😁киритi urewfceniuewruevrewnuuireurevueurnievrewfnerfcnevirivinrewvnirewnivrewiuvcrewvnuewvrrrewniuerwreiuviurewiuviurewnuvewnvrenurnunuvrevuurerejiremvreijnvcreivire nverivnreivrevnureiorfnfrvoeoiroireoireoifrefoieroifoireoifoirefoireoifoijfoirereoireoivoioirevoinvoinreoinvnoieoinreoinveoinveoinreoinvoineoinoinoineoinernoiveoinvreoiioewdioewoirvnoireoivfoirewfewoifoijewoijfoijewfoijfewoijoijoijoijoijoijoijfewceniuewruevrewnuuireurevueurnievrewfnerfcnevirivinrewvnirewnivrewiuvcrewvnuewvrrrewniuerwreiuviurewiuviurewnuvewnvrenurnunuvrevuurerejiremvreijnvcreivire nverivnreivrevnureiorfnfrvoeoiroireoireoifrefoieroifoireoifoirefoireoifoijfoirereoireoivoioirevoinvoinreoinvnoieoinreoinveoinveoinreoinvoineoinoinoineoinernoiveoinvreoiioewdioewoirvnoireoivfoirewfewoifoijewoijfoijewfoijfewoijoijoijoijoijoijoijfewrewfceniuewruevrewnuuireurevueurnievrewfnerfcnevirivinrewvnirewnivrewiuvcrewvnuewvrrrewniuerwreiuviurewiuviurewnuvewnvrenurnunuvrevuurerejiremvreijnvcreivire nverivnreivrevnureiorfnfrvoeoiroireoireoifrefoieroifoireoifoirefoireoifoijfoirereoireoivoioirevoinvoinreoinvnoieoinreoinveoinveoinreoinvoineoinoinoineoinernoiveoinvreoiioewdioewoirvnoireoivfoirewfewoifoijewoijfoijewfoijfewoijoijoijoijoijoijoijfewceniuewruevrewnuuireurevueurnievrewfnerfcnevirivinrewvnirewnivrewiuvcrewvnuewvrrrewniuerwreiuviurewiuviurewnuvewnvrenurnunuvrevuurerejiremvreijnvcreivire nverivnreivrevnureiorfnfrvoeoiroireoireoifrefoieroifoireoifoirefoireoifoijfoirereoireoivoioirevoinvoinreoinvnoieoinreoinveoinveoinreoinvoineoinoinoineoinernoiveoinvreoiioewdioewoirvnoireoivfoirewfewoifoijewoijfoijewfoijfewoijoijoijoijoijoijoijfew"
+	    CFILESRC=
+	    for cand in /usr/share/dict/american-english /usr/share/dict/linux.words /data/data/com.termux/files/usr/share/hunspell/en_US.dic; do
+		if test -f "$cand" ; then
+		    CFILESRC="$cand"
+		    break
+		fi
+	    done
+	    if test "$CFILESRC" = "" ; then
+		echo "Couldn't find compressible file" >&2
+		exit 99
+	    fi
+	    case x"$fs" in
+		# FS LIMITATION: 8.3 names
+		xmsdos*)
+		    CFILE="american.eng";;
+		xiso9660)
+		    CFILE="american_english";;
+		*)
+		    CFILE="american-english";;
+	    esac
+	    # OS LIMITATION: Limited by NAME_MAX (usually 255) in GNU/Linux
+	    LONGNAME="qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890oiewqfiewioqoiqoiurqruewqoiuwoieoiiuewqroreqiufieiuwrnureweriuvceoiroiewqoiricdsalkcndsakfirefoiwqeoircorejwoijfreoijojoiewjfwnfcoirenfoirefnreoifenoiwfnoi"
+	    rm -rf "$MASTER"
+
+	    case x"$fs" in
+		# FS LIMITATION: HFS+ label is at most 255 UTF-16 chars
+		# OS LIMITATION: Linux HFS+ tools check UTF-8 length and don't
+		# handle out-of-BMP characters
+		x"hfsplus" | x"hfsplus_casesens" | x"hfsplus_wrap")
+		    FSLABEL="grub_;/testé䏌䐓䏕киритi urewfceniuewruevrewnuuireurevueurnievrewfnerfcnevirivinrewvnirewnivrewiuvcrewvnuewvrrrewniuerwreiuviurewiuviurewnuvewnvrenurnunuvrevuurerejiremvreijnvcreivire nverivnreivrevnureiorfnfrvoeoiroireoireoifrefoieroifoireoifoiq"
+		    ;;
+		# FS LIMITATION: btrfs label is at most 255 UTF-8 chars
+		x"btrfs"*)
+		    FSLABEL="grub_;/testé莭莽😁киритi urewfceniuewruevrewnuuireurevueurnievrewfnerfcnevirivinrewvnirewnivrewiuvcrewvnuewvrrrewniuerwreiuviurewiuviurewnuvewnvrenurnunuvrevuurerejiremvreijnvcreivire nverivnreivrevnureiorfnfrvoeoiroireoireoifrefoieroifoireoi";;
+
+		# FS LIMITATION: f2fs label is at most 512 UTF-16 chars
+		x"f2fs")
+		    FSLABEL="grub_;/testé䏌䐓䏕киритiurewfceniuewruewnuuireurevueurnievrewfnerfcnevirivinrewvnirewnivrewiuvcrewvnuewvrrrewniuerwreiuviurewiuviurewnuvewnvrenurnunuvrevuurerejiremvreijnvvcreivire nverivnreivrevnureiorfnfrvoeoiroireoireoifrefoieroifoirvcreivire nverivnreivrevnureiorfnfrvoeoiroireoireoifrefoieroifoircreivire nverivnreivrevnureiorfnfrvoeoiroireoireoifrefoieroifoireoifoiq";;
+
+		# FS LIMITATION: exfat is at most 15 UTF-16 chars
+		x"exfat")
+		    FSLABEL="géт ;/莭莽😁кир";;
+		# FS LIMITATION: ntfs label is at most ?? UTF-16 chars
+		x"ntfs"*)
+		    FSLABEL="grub_;/testéтi u莭😁茝кириrewfceniuewruevrewnuuireurevueurnievrewfnerfcnevirivinrewvniwnivrewiuvcrewvnuewvrrrewniureifiuewifjiww";;
+		# FS LIMITATION: nilfs2 label is at most 80 UTF-8 characters
+		x"nilfs2")
+		    FSLABEL="grub_;/testéтi u😁莽茝кириrewfceniuewruevrewnuuireurevueurnievrewfne";;
+		# FS LIMITATION: afs and iso9660 label is at most 32 UTF-8 characters
+		x"afs" | xiso9660 | xrockridge | xrockridge_joliet\
+		     | xiso9660_1999 | xrockridge_1999\
+		     | xrockridge_joliet_1999 | xziso9660)
+		     FSLABEL="gr_;/é莭莽😁кирит u";;
+		# FS LIMITATION: bfs label is at most 32 UTF-8 characters
+		# OS LIMITATION: bfs label can't contain ; or /
+		x"bfs")
+		    FSLABEL="grub_é莭莽😁кирит u";;
+		# FS LIMITATION: Joliet label is at most 16 UTF-16 characters
+		# OS LIMITATION: xorriso doesn't handle out-of-BMP characters
+		xjoliet | xjoliet_1999)
+		    FSLABEL="g;/_é䏌䐓䏕䎛䎾䏴кит u"
+		    #FSLABEL="g;/_é莭莽😁кит u"
+		    ;;
+		# FS LIMITATION: reiserfs, extN and jfs label is at most 16 UTF-8 characters
+		x"reiserfs_old" | x"reiserfs" | x"ext"* | x"lvm"* | x"mdraid"* | x"jfs" | x"jfs_caseins")
+		    FSLABEL="g;/éт 莭😁";;
+		# FS LIMITATION: No underscore, space, semicolon, slash or international characters in UFS* in label. Limited to 32 UTF-8 characters
+		x"ufs1" | x"ufs1_sun" | x"ufs2")
+		    FSLABEL="grubtest""ieurrucnenreeiurueurewf";;
+		# FS LIMITATION: XFS label is at most 12 UTF-8 characters
+		x"xfs"|x"xfs_crc")
+		    FSLABEL="géт 😁к";;
+		# FS LIMITATION: FAT labels limited to 11 characters, no international characters or lowercase
+		# and excluding the restricted characters in "*?.,;:/\|+=<>[]"
+		x"vfat"* | xmsdos*)
+		    FSLABEL="G~!@#\$%^&(_";;
+		# FS LIMITATION: AFFS is latin1. At most 29 characters
+		x"affs" | xaffs_intl)
+		    FSLABEL="grub_tt? #*w;/e£@¡¤½¾{[]}<>.,";;
+		# FS LIMITATION: SFS is latin1. At most 30 characters
+		x"sfs"*)
+		    FSLABEL="GRUB tt öäüé;/àèç åø¿ª©þð×«»µ¬";;
+		# FS LIMITATION:  HFS is Mac-Roman. At most 27 characters
+		x"hfs")
+		    FSLABEL="grub_t;/estéàèèéie fiucnree";;
+		# FS LIMITATION: UDF label is either up to 127 latin1 characters or 63 UTF-16 ones
+		# OS LIMITATION: Linux UDF tools force ASCII label ...
+		x"udf")
+		    FSLABEL="grub_;/testurewfceniuewruevrewnuuireurevueurnievr";;
+		# FS LIMITATION:  ZFS doesn't accept non-ASCII in label
+		# FIXME: since this is used as a path component for mount it's very limited in length
+		xzfs_* | xzfs)
+		    FSLABEL="grub_testieufiue r";;
+	    esac
+	    case x"$fs" in
+		xmdraid*)
+		    DISKSIZE=314572800;;
+		xlvm*)
+		    LVMBLKMUL=$(((5800 * 1048576) / (8 * BLKSIZE * NDEVICES)))
+		    DISKSIZE=$((8*BLKSIZE*LVMBLKMUL));;
+		# FS LIMITATION: some fs have disk size limit
+		x"vfat12" | xmsdos12)
+		    DISKSIZE=$((4000*BLKSIZE));;
+		x"vfat12a" | xmsdos12a)
+		    if [ $BLKSIZE -ge 2048 ]; then
+			DISKSIZE=$((2500*BLKSIZE))
+		    else
+			DISKSIZE=$((3000*BLKSIZE))
+		    fi
+		    if [ $DISKSIZE -gt $((60000*SECSIZE)) ]; then
+			DISKSIZE=$((60000*SECSIZE))
+		    fi;;
+		x"vfat16" | xmsdos16)
+		    DISKSIZE=$((65000*BLKSIZE));;
+		x"vfat16a" | xmsdos16a)
+		    DISKSIZE=$((60000*SECSIZE))
+		    ;;
+		*)
+		    DISKSIZE=10737418240;;
+	    esac
+
+	    if [ $DISKSIZE -ge $(((5800/NDEVICES)*1048576)) ]; then
+		DISKSIZE=$(((5800/NDEVICES)*1048576))
+	    fi
+
+	    case x"$fs" in
+		xvfat* | xmsdos* | xexfat* | xhfs | xhfsplus | xhfsplus_wrap | xaffs \
+		    | xaffs_intl | xjfs_caseins | xsfs_caseins \
+		    | xzfs_caseins | xiso9660)
+		    CASESENS=n;;
+		*)
+		    CASESENS=y;;
+	    esac
+
+	    BIGBLOCKCNT=$((5000 * 1048576))
+	    case x"$fs" in
+		# FS LIMITATION: small filesystems
+		x"vfat12" | xmsdos12)
+		    if [ $BLKSIZE -le 4096 ]; then
+			BIGBLOCKCNT=0
+		    elif [ $BLKSIZE = 8192 ]; then
+			BIGBLOCKCNT=1500000
+		    else
+			BIGBLOCKCNT=$((2000*BLKSIZE))
+		    fi
+		    ;;
+		x"vfat12a" | xmsdos12a)
+		    if [ $BLKSIZE -le 4096 ] || [ $((128*SECSIZE)) = $BLKSIZE ]; then
+			BIGBLOCKCNT=0
+		    else
+			BIGBLOCKCNT=700000
+		    fi;;
+		x"vfat16a" | xmsdos16a)
+		    if [ $((128*SECSIZE)) = $BLKSIZE ]; then
+			BIGBLOCKCNT=0
+		    else
+			BIGBLOCKCNT=$((2500*SECSIZE))
+		    fi
+		    ;;
+		x"vfat16" | xmsdos16)
+		    BIGBLOCKCNT=$((25000 * BLKSIZE))
+		    if [ $BIGBLOCKCNT -gt 4294967295 ]; then
+			BIGBLOCKCNT=4294967295
+		    fi
+		    ;;
+		x"minix")
+		    BIGBLOCKCNT=30000000;;
+
+		xexfat)
+		    # Big blocks waste really a lot of space.
+		    # Not much is left.
+		    if [ $BLKSIZE = 2097152 ]; then
+			BIGBLOCKCNT=4500000000
+		    fi
+		    if [ $BLKSIZE = 4194304 ]; then
+			BIGBLOCKCNT=3500000000
+		    fi
+		    ;;
+		# FS LIMITATION: romfs image is limited to 4G.
+		x"romfs")
+		    BIGBLOCKCNT=$((4000 * 1048576));;
+		# FS LIMITATION: These FS have uint32 as file size field
+		x"vfat"* | xmsdos* | x"cpio_crc" | x"cpio_newc" | x"cpio_bin" | x"cpio_hpbin" | xsfs*)
+		    BIGBLOCKCNT=4294967295;;
+		    # FS LIMITATION: These FS have int32 as file size field
+		    # FIXME: not so sure about AFFS
+		    # OS LIMITATION: minix2/minix3 could be formatted in a way to permit more.
+		x"minix3" | x"minix2" | x"hfs"| x"affs" | xaffs_intl | xreiserfs_old | xext2_old)
+		    BIGBLOCKCNT=$((0x7fffffff));;
+
+		# FS LIMITATION: redundant storage
+		# We have only limited space. Mirroring multiplies it very effectively.
+		xmdraid* | xlvm* | xzfs_mirror | xbtrfs_raid1)
+		    BIGBLOCKCNT=$((100 * 1048576));;
+		# We already test the FS for big files separately. Save some time here.
+		x"zfs_raid"* | x"zfs_stripe"* | x"zfs_mirror"* | x"btrfs_raid"*)
+		    BIGBLOCKCNT=$((100 * 1048576));;
+
+		# OS LIMITATION: bfs_fuse bugs beyond that
+		xbfs)
+		    BIGBLOCKCNT=$((800 * 1048576));;
+	    esac
+
+	    NOSYMLINK=n
+	    case x"$fs" in
+		# FS LIMITATION: no symlinks on FAT, exFAT, HFS, plain ISO9660 and Joliet
+		# OS LIMITATION: ntfs-3g  creates interix symlinks which aren't real symlinks
+		x"vfat"* | xmsdos* | x"hfs" | x"exfat" | x"ntfs"* \
+		    | xiso9660 | xjoliet| xiso9660_1999 | xjoliet_1999)
+		    NOSYMLINK=y;;
+	    esac
+	    NOHARDLINK=n
+	    case x"$fs" in
+		# FS LIMITATION: no hardlinks on BFS, exfat, fat, hfs and SFS
+		xbfs | xexfat | x"vfat"* | xmsdos* | xhfs | xsfs | xsfs_caseins)
+		    NOHARDLINK=y;;
+		# GRUB LIMITATION: no hardlink support on newc and hfs+
+		xcpio_crc | xcpio_newc | xhfsplus*)
+		    NOHARDLINK=y;;
+	    esac
+
+	    # FS LIMITATION: some filesystems limit file name size
+	    case x"$fs" in
+		x"cpio_ustar")
+		    LONGNAME="`echo $LONGNAME |head -c 99`";;
+		x"hfs")
+		    LONGNAME="`echo $LONGNAME |head -c 31`";;
+		x"minix" | x"minix2" | x"affs" | xaffs_intl | xiso9660)
+		    LONGNAME="`echo $LONGNAME |head -c 30`";;
+		x"sfs"*)
+		    LONGNAME="`echo $LONGNAME |head -c 105`";;
+		x"minix3")
+		    LONGNAME="`echo $LONGNAME |head -c 60`";;
+		x"udf")
+		    LONGNAME="`echo $LONGNAME |head -c 192`";;
+		# GRUB LIMITATION: GRUB prefers Joliet over ISO9660:1999
+		xjoliet | xjoliet_1999)
+		    LONGNAME="`echo $LONGNAME |head -c 103`";;
+		xiso9660_1999)
+		    LONGNAME="`echo $LONGNAME |head -c 207`";;
+		# FS LIMITATION: 8.3
+		xmsdos*)
+		    LONGNAME="qwertzui.opa";;
+	    esac
+	    NOFILETIME=n
+	    NOFSTIME=n
+	    case x"$fs" in
+		# FIXME: Not sure about BtrFS, NTFS, JFS, AFS, UDF and SFS. Check it.
+		# FS LIMITATION: as far as I know those FS don't store their last modification date.
+		x"jfs_caseins" | x"jfs" | x"xfs" | x"xfs_crc" | x"btrfs"* | x"reiserfs_old" | x"reiserfs" \
+		    | x"bfs" | x"afs" | x"f2fs" \
+		    | x"tarfs" | x"cpio_"* | x"minix" | x"minix2" \
+		    | x"minix3" | x"ntfs"* | x"udf" | x"sfs"*)
+		    NOFSTIME=y;;
+		# OS LIMITATION: Linux doesn't update fstime.
+		# OS LIMITATION: Linux apparently uses localtime instead of UTC
+		xhfs)
+		    NOFILETIME=y; NOFSTIME=y;;
+		# GRUB LIMITATION:  FAT and exFAT use localtime. Unusable for GRUB
+		x"vfat"* | x"msdos"* | x"exfat")
+		    NOFILETIME=y; NOFSTIME=y;;
+		# FS LIMITATION: romfs has no timestamps.
+		x"romfs")
+		    NOFILETIME=y; NOFSTIME=y;;
+	    esac
+
+	    NOFSLABEL=n
+	    case x"$fs" in
+		# FS LIMITATION: these filesystems have no label.
+		x"cpio_"* | x"tarfs" | x"squash4_"* | x"minix" | x"minix2" \
+		    | x"minix3" | xreiserfs_old)
+		    NOFSLABEL=y;;
+	    esac
+
+	    PDIRCOMPNUM=210
+	    PDIR2COMPNUM=210
+
+	    case x$fs in
+		# OS LIMITATION: bfs_fuse bugs beyond that
+		xbfs)
+		    PDIRCOMPNUM=10
+		    PDIR2COMPNUM=10;;
+		# OS LIMITATION: Linux supports only inline symlinks
+		xudf)
+		    if [ $BLKSIZE = 1024 ]; then
+			PDIR2COMPNUM=113
+		    fi ;;
+		# FS LIMITATION: at most 255 on path length
+		# FS LIMITATION: at most 100 on symlink length
+		xcpio_ustar)
+		    PDIRCOMPNUM=84
+		    PDIR2COMPNUM=30;;
+		# OS LIMITATION: Linux supports only symlink at most one block long on reiserfs
+		xreiserfs | xreiserfs_old)
+		    if [ $BLKSIZE = 512 ]; then
+			PDIR2COMPNUM=114
+		    fi ;;
+		# FS LIMITATION: SFS assumes that symlink
+		# with header fit in one block.
+		# FIXME: not sure about it.
+		xsfs | xsfs_caseins)
+		    if [ $BLKSIZE = 512 ]; then
+			PDIR2COMPNUM=147
+		    fi ;;
+		# FS LIMITATION: AFFS assumes that symlink
+		# with rather larger header fit in one block.
+		# FIXME: not sure about it.
+		xaffs | xaffs_intl)
+		    if [ $BLKSIZE = 512 ]; then
+			PDIR2COMPNUM=97
+		    fi ;;
+	    esac
+
+
+	    PDIR=""
+	    # OS LIMITATION: Limited by PATH_MAX (usually 1024)
+	    for i in $(range 0 $((PDIRCOMPNUM-1)) 1); do
+		PDIR="$PDIR/$i";
+		if test $((i%3)) = 0; then
+		    PDIR="$PDIR/"
+		fi
+	    done
+
+	    PDIR2=""
+	    # OS LIMITATION: Limited by PATH_MAX (usually 1024)
+	    for i in $(range 0 $((PDIR2COMPNUM-1)) 1); do
+		PDIR2="${PDIR2}/$i";
+		if test $((i%3)) = 0; then
+		    PDIR2="${PDIR2}/"
+		fi
+	    done
+
+	    PFIL="p.img"
+
+	    unset LODEVICES
+	    GENERATED=n
+	    LODEVICES=
+	    MOUNTDEVICE=
+	    
+	    case x"$fs" in
+		x"tarfs" | x"cpio_"*| x"ziso9660" | x"romfs" | x"squash4_"*\
+		    | x"iso9660" | xjoliet | xrockridge | xrockridge_joliet \
+		    | x"iso9660_1999" | xjoliet_1999 | xrockridge_1999 \
+		    | xrockridge_joliet_1999)
+		    MNTPOINTRW="$MASTER"
+		    MNTPOINTRO="$MASTER"
+		    GENERATED=y
+		    mkdir -p "$MASTER";;
+		    # No mkfs for GNU/Linux. Just unpack preformatted empty image
+		*)
+		    mkdir -p "$MNTPOINTRW"
+		    mkdir -p "$MNTPOINTRO"
+		    for i in $(range 0 $((NDEVICES-1)) 1); do
+			dd if=/dev/zero of="$FSIMAGEP${i}.img" count=1 bs=1 seek=$((DISKSIZE-1)) &> /dev/null
+			LODEVICE=$(losetup --find --show "$FSIMAGEP${i}.img") || exit 99
+			LODEVICES="$LODEVICES $LODEVICE"
+			if test "$i" = 0; then
+			    MOUNTDEVICE="$LODEVICE"
+			fi
+		    done ;;
+	    esac
+
+	    case x"$fs" in
+		x"afs")
+		    ;;
+		x"btrfs")
+		    "mkfs.btrfs" -s $SECSIZE -L "$FSLABEL" "${MOUNTDEVICE}" ;;
+		x"btrfs_zlib" | x"btrfs_lzo" | x"btrfs_zstd")
+		    "mkfs.btrfs" -s $SECSIZE -L "$FSLABEL" "${MOUNTDEVICE}"
+		    MOUNTOPTS="compress=${fs/btrfs_/},"
+		    MOUNTFS="btrfs"
+		    ;;
+		x"btrfs_raid0")
+		    "mkfs.btrfs" -s $SECSIZE -d raid0 -m raid0 -L "$FSLABEL" $LODEVICES
+		    MOUNTFS="btrfs"
+		    ;;
+		x"btrfs_raid1")
+		    "mkfs.btrfs" -s $SECSIZE -d raid1 -m raid1 -L "$FSLABEL" $LODEVICES
+		    MOUNTFS="btrfs"
+		    ;;
+		x"btrfs_raid10")
+		    "mkfs.btrfs" -s $SECSIZE -d raid10 -m raid10 -L "$FSLABEL" $LODEVICES
+		    MOUNTFS="btrfs"
+		    ;;
+		x"btrfs_single")
+		    "mkfs.btrfs" -s $SECSIZE -d single -L "$FSLABEL" $LODEVICES
+		    MOUNTFS="btrfs"
+		    ;;
+		x"exfat")
+		    "mkfs.$fs" -s $((BLKSIZE/512)) -n "$FSLABEL" "${MOUNTDEVICE}"
+		    MOUNTOPTS="iocharset=utf8,"
+		    MOUNTFS="exfat-fuse";;
+		x"minix")
+		    "mkfs.minix" "${MOUNTDEVICE}"
+		    ;;
+		# mkfs.hfs and mkfs.hfsplus don't fill UUID.
+		x"hfsplus")
+		    "mkfs.hfsplus" -b $BLKSIZE -v "$FSLABEL" "${MOUNTDEVICE}"
+		    dd if=/dev/urandom of="${MOUNTDEVICE}" bs=1 seek=$((0x468)) conv=notrunc count=8 ;;
+		x"hfsplus_wrap")
+		    "mkfs.hfsplus" -w -b $BLKSIZE -v "$FSLABEL" "${MOUNTDEVICE}"
+		    dd if=/dev/urandom of="${MOUNTDEVICE}" bs=1 seek=$((0x468)) conv=notrunc count=8
+		    MOUNTFS="hfsplus";;
+		x"hfsplus_casesens")
+		    "mkfs.hfsplus" -s -b $BLKSIZE -v "$FSLABEL" "${MOUNTDEVICE}"
+		    dd if=/dev/urandom of="${MOUNTDEVICE}" bs=1 seek=$((0x468)) conv=notrunc count=8
+		    MOUNTFS="hfsplus";;
+		x"hfs")
+		    "mkfs.hfs" -b $BLKSIZE -v "`echo $FSLABEL |recode utf8..macroman`" -h "${MOUNTDEVICE}"
+		    dd if=/dev/urandom of="${MOUNTDEVICE}" bs=1 seek=$((0x474)) conv=notrunc count=8
+		    MOUNTOPTS="iocharset=utf8,codepage=macroman,"
+		    ;;
+		x"vfat"*|xmsdos*)
+		    BITS="${fs/vfat/}"
+		    BITS="${BITS/msdos/}"
+		    if [ "x${BITS:2:1}" = xa ]; then
+			A=-A
+		    else
+			A=
+		    fi
+		    "mkfs.vfat" -a $A -S $SECSIZE -s $((BLKSIZE/SECSIZE)) -F "${BITS:0:2}" -n "$FSLABEL" "${MOUNTDEVICE}"
+		    MOUNTOPTS="iocharset=utf8,codepage=437,"
+		    MOUNTFS="$(echo "$fs"|sed 's,[0-9]*a\?$,,')";;
+		x"minix2")
+		    "mkfs.minix" -v "${MOUNTDEVICE}"
+		    MOUNTFS="minix";;
+		x"minix3")
+		    "mkfs.minix" -3 "${MOUNTDEVICE}"
+		    MOUNTFS="minix";;
+		x"ntfs"*)
+		    "mkfs.ntfs" -s "$SECSIZE" -c "$BLKSIZE" -L "$FSLABEL" -Q -q "${MOUNTDEVICE}"
+		    MOUNTOPTS="iocharset=utf8,compression,"
+		    MOUNTFS="ntfs-3g";;
+		x"udf")
+		    "mkudffs" --utf8 -b $BLKSIZE --lvid="$FSLABEL" "${MOUNTDEVICE}"
+		    MOUNTOPTS="iocharset=utf8,bs=$BLKSIZE,";;
+		x"ufs2")
+		    "mkfs.ufs" -b $BLKSIZE -L "$FSLABEL" -O 2 "${MOUNTDEVICE}"
+		    MOUNTOPTS="ufstype=ufs2,"
+		    MOUNTFS="ufs";;
+		x"ufs1")
+		    "mkfs.ufs" -b $BLKSIZE -L "$FSLABEL" -O 1 "${MOUNTDEVICE}"
+		    MOUNTOPTS="ufstype=44bsd,"
+		    MOUNTFS="ufs";;
+		x"ufs1_sun")
+		    "mkfs.ufs" -b $BLKSIZE -L "$FSLABEL" -O 1 "${MOUNTDEVICE}"
+		    MOUNTOPTS="ufstype=sun,"
+		    MOUNTFS="ufs";;
+		x"zfs")
+		    "zpool" create -R "$MNTPOINTRW" "$FSLABEL" "${MOUNTDEVICE}"
+		    sleep 1
+		    "zfs" create "$FSLABEL"/"grub fs"
+		    sleep 1;;
+		x"zfs_caseins")
+		    "zpool" create -R "$MNTPOINTRW" "$FSLABEL" "${MOUNTDEVICE}"
+		    sleep 1
+		    "zfs" create -o casesensitivity=insensitive "$FSLABEL"/"grub fs"
+		    sleep 1;;
+		x"zfs_lzjb" | xzfs_gzip | xzfs_zle)
+		    "zpool" create -O compression=${fs/zfs_/} -R "$MNTPOINTRW" "$FSLABEL" "${MOUNTDEVICE}"
+		    sleep 1
+		    "zfs" create -o compression=${fs/zfs_/} "$FSLABEL"/"grub fs"
+		    sleep 1;;
+		x"zfs_raidz")
+		    "zpool" create -R "$MNTPOINTRW" "$FSLABEL" raidz1 $LODEVICES
+		    sleep 1
+		    "zfs" create "$FSLABEL"/"grub fs"
+		    sleep 1;;
+		x"zfs_raidz2")
+		    "zpool" create -R "$MNTPOINTRW" "$FSLABEL" raidz2 $LODEVICES
+		    sleep 1
+		    "zfs" create "$FSLABEL"/"grub fs"
+		    sleep 1;;
+		x"zfs_raidz3")
+		    "zpool" create -R "$MNTPOINTRW" "$FSLABEL" raidz3 $LODEVICES
+		    sleep 1
+		    "zfs" create "$FSLABEL"/"grub fs"
+		    sleep 1;;
+		x"zfs_mirror")
+		    "zpool" create -R "$MNTPOINTRW" "$FSLABEL" mirror $LODEVICES
+		    sleep 1
+		    "zfs" create "$FSLABEL"/"grub fs"
+		    sleep 1;;
+		x"zfs_stripe")
+		    "zpool" create -R "$MNTPOINTRW" "$FSLABEL" $LODEVICES
+		    sleep 1
+		    "zfs" create "$FSLABEL"/"grub fs"
+		    sleep 1;;
+		x"tarfs" | x"cpio_"* | x"iso9660" | xjoliet | xrockridge | xrockridge_joliet | x"iso9660_1999" | xjoliet_1999 | xrockridge_1999 | xrockridge_joliet_1999 | x"ziso9660" | x"romfs" | x"squash4_"*)
+		    INSTDEVICE=/dev/null;;
+		x"reiserfs")
+		    "mkfs.reiserfs" --format=3.6 -b $BLKSIZE -l "$FSLABEL" -q "${MOUNTDEVICE}" ;;
+		x"reiserfs_old")
+		    "mkfs.reiserfs" --format=3.5 -b $BLKSIZE -l "$FSLABEL" -q "${MOUNTDEVICE}"
+		    MOUNTFS=reiserfs;;
+		x"jfs")
+		    "mkfs.jfs" -L "$FSLABEL" -q "${MOUNTDEVICE}"
+		    MOUNTOPTS="iocharset=utf8,";;
+		x"jfs_caseins")
+		    "mkfs.jfs" -O -L "$FSLABEL" -q "${MOUNTDEVICE}"
+		    MOUNTFS=jfs
+		    MOUNTOPTS="iocharset=utf8,";;
+		x"mdraid"*)
+		    mdadm -C --chunk=$((BLKSIZE/1024)) --force -e "${fs:6:1}.${fs:7:1}" "/dev/md/${fs}_${NDEVICES}" --level="${fs:13}" --raid-devices="$NDEVICES" $LODEVICES
+		    MOUNTDEVICE="/dev/md/${fs}_${NDEVICES}"
+		    MOUNTFS=ext2
+		    "mkfs.ext2" -L "$FSLABEL" -q "${MOUNTDEVICE}" ;;
+		x"lvm"*)
+		    for lodev in $LODEVICES; do
+			pvcreate "$lodev"
+		    done
+		    vgcreate -s $((BLKSIZE/1024))K grub_test $LODEVICES
+		    if [ x$fs = xlvm ] ; then
+			lvcreate -l "$((NDEVICES*7*LVMBLKMUL))" -n testvol grub_test
+		    elif [ x$fs = xlvm_stripe ] ; then
+			lvcreate -l "$((NDEVICES*7*LVMBLKMUL))" -i "$NDEVICES" -n testvol grub_test
+		    elif [ x$fs = xlvm_mirror1 ] || [ x$fs = xlvm_raid1 ] ; then
+			lvcreate -m 1 -l "$((NDEVICES*2*LVMBLKMUL))" --type "${fs/lvm_/}" -n testvol grub_test
+		    elif [ x$fs = xlvm_mirrorall ] ; then
+			lvcreate -m "$((NDEVICES-1))" -l "$((6*LVMBLKMUL))" --type mirror -n testvol grub_test
+		    elif [ x$fs = xlvm_raid1all ] ; then
+			# Until version 2.02.103 LVM counts metadata segments
+			# twice when checking available space. Reduce segment
+			# count to work around it.
+			lvcreate -m "$((NDEVICES-1))" -l "$((6*LVMBLKMUL - 1))" --type raid1 -n testvol grub_test
+		    elif [ x$fs = xlvm_raid4 ] || [ x$fs = xlvm_raid5 ]; then
+			lvcreate -l "$(((NDEVICES-1) * 5*LVMBLKMUL))" -i "$((NDEVICES-1))" --type "${fs/lvm_/}" -n testvol grub_test
+		    elif [ x$fs = xlvm_raid6 ]; then
+			lvcreate -l "$(((NDEVICES-2) * 5*LVMBLKMUL))" -i "$((NDEVICES-2))" --type "${fs/lvm_/}" -n testvol grub_test
+		    fi
+		    MOUNTDEVICE="/dev/mapper/grub_test-testvol"
+		    MOUNTFS=ext2
+		    "mkfs.ext2" -L "$FSLABEL" -q "${MOUNTDEVICE}"  ;;
+		xf2fs)
+		    "mkfs.f2fs" -l "$FSLABEL" -q "${MOUNTDEVICE}" ;;
+		xnilfs2)
+		    "mkfs.nilfs2" -L "$FSLABEL" -b $BLKSIZE  -q "${MOUNTDEVICE}" ;;
+		xext2_old)
+		    MKE2FS_DEVICE_SECTSIZE=$SECSIZE "mkfs.ext2" -r 0 -b $BLKSIZE -L "$FSLABEL" -q "${MOUNTDEVICE}"
+		    MOUNTFS=ext2
+		    ;;
+		xext4_metabg)
+		    MKE2FS_DEVICE_SECTSIZE=$SECSIZE "mkfs.ext4" -O meta_bg,^resize_inode -b $BLKSIZE -L "$FSLABEL" -q "${MOUNTDEVICE}"
+		    MOUNTFS=ext4
+		    ;;
+	       xext4_encrypt)
+		   MKE2FS_DEVICE_SECTSIZE=$SECSIZE "mkfs.ext4" -O encrypt -b $BLKSIZE -L "$FSLABEL" -q "${MOUNTDEVICE}"
+		   MOUNTFS=ext4
+		   ;;
+		xext*)
+		    MKE2FS_DEVICE_SECTSIZE=$SECSIZE "mkfs.$fs" -b $BLKSIZE -L "$FSLABEL" -q "${MOUNTDEVICE}" ;;
+		xxfs)
+		    "mkfs.xfs" -m crc=0 -b size=$BLKSIZE -s size=$SECSIZE -L "$FSLABEL" -q "${MOUNTDEVICE}" ;;
+		xxfs_crc)
+		    MOUNTFS="xfs"
+		    "mkfs.xfs" -m crc=1 -b size=$BLKSIZE -s size=$SECSIZE -L "$FSLABEL" -q "${MOUNTDEVICE}" ;;
+		*)
+		    echo "Add appropriate mkfs command here"
+		    exit 99
+		    ;;
+	    esac
+	    BASEFILE="1.img"
+	    NASTYFILE=".?*\\!\"#%@\$%&'()+ ,-.:;<=>^{_}[]\`|~."
+	    case x"$fs" in
+
+		# FS LIMITATION: AFFS and SFS don't accept :
+		xsfs*)
+		    NASTYFILE=".?*\\!\"#%@\$%&'()+ ,-.;<=>^{_}[]\`|~.";;
+		# FS LIMITATION: AFFS is limited in file name length (30)
+		x"affs" | xaffs_intl)
+		    NASTYFILE=".?*\\!\"#@\$'()+ ,-;<=>^{_}[]\`|~.";;
+		# FS LIMITATION: hfs, minix and minix2 are limited in file name length (30 or 31)
+		x"hfs" | x"minix" | x"minix2")
+		    NASTYFILE=".?*\\!\"#@\$&'()+ ,-:;<=>{}[]\`|~.";;
+		# FS LIMITATION: FAT doesn't accept ?, *, \, ", :,  <, >, |
+		# FS LIMITATION: FAT discards dots at the end.
+		x"vfat"* | x"exfat")
+		    NASTYFILE=".!#%@\$%&'()+ ,-.;=^{_}[]\`~";;
+		# FS LIMITATION: 8.3 limitations apply
+		x"msdos"*)
+		    NASTYFILE="!#%@\$%&.;=^";;
+		# FS LIMITATION: No ' ', '*', '/', ':', ';', '?', '\\' in joliet
+		# GRUB LIMITATION: GRUB prefers Joliet over ISO9660:1999
+		xjoliet | xjoliet_1999)
+		    NASTYFILE=".!\"#%@\$%&'()+,-.<=>^{_}[]\`|~.";;
+		# FS LIMITATION: iso9660 accepts only [0-9A-Z_]*, 32 characters at most
+		xiso9660)
+		    NASTYFILE="0123456789_acefghijknopqrvwxyz";;
+	    esac
+
+	    case x"$fs" in
+		# FS LIMITATION: HFS, AFFS and SFS use legacy codepage (mac-roman or latin1)
+		x"sfs"* | x"hfs" | x"affs" | xaffs_intl)
+		    IFILE="éàèüöäëñ"
+		    ISYM="ëñéüöäàè"
+		    ;;
+		# FS LIMITATION: filename length limitation.
+		x"minix" | x"minix2")
+		    IFILE="éàèüö😁ñкиΕλκά"
+		    ISYM="Ελκάкиéà😁öäëñ"
+		    ;;
+		xminix3)
+		    IFILE="éàèüöäëñкирица莭茝Ελλικά😁😜😒"
+		    ISYM="Ελλικά😁😜😒莭茝кирицаéàèüöäëñ";;
+		# GRUB LIMITATION: HFS+ uses NFD. GRUB doesn't handle NF conversion.
+		# OS LIMITATION: Linux doesn't handle out-of-BMP characters for UTF-16
+		x"hfsplus" | x"hfsplus_casesens" | x"hfsplus_wrap")
+		    IFILE="éàèüöäëñкирилица䏌䐓䏕Ελληνικα̍䏌䐓䏕"
+		    ISYM="Ελληνικα̍кирилица䏌䐓䏕éàèüöäëñ䏌䐓䏕"
+		    ;;
+		# GRUB LIMITATION: On case-insensitive ZFS isn't supported with non-uppercase characters
+		xzfs_caseins)
+		    IFILE="ÉÀÈÜÖÄËÑКИРИЛИЦА莭莽茝ΕΛΛΗΝΙΚΆ😁😜😒"
+		    ISYM="ΕΛΛΗΝΙΚΆКИРИЛИЦА😁😜😒ÉÀÈÜÖÄËÑ莭莽茝";;
+		# FS LIMITATION: 8.3 CP437
+		x"msdos"*)
+		    IFILE="éàèüöäëñ.éàè"
+		    ;;
+		# FS LIMITATION: iso9660 is ASCII-only.
+		x"iso9660")
+		    IFILE="abcdefghijkmmnop"
+		    ;;
+		# OS LIMITATION: Linux doesn't handle out-of-BMP characters for UTF-16
+		# OS LIMITATION: xorriso doesn't handle out-of-BMP characters
+		xjoliet | xjoliet_1999 | x"vfat"* | x"jfs"* | x"udf"*)
+		    IFILE="éàèüöäëñкирилица䏌䐓䏕Ελληνικά䏌䐓䏕"
+		    ISYM="Ελληνικάкирилица䏌䐓䏕éàèüöäëñ䏌䐓䏕";;
+		*)
+		    IFILE="éàèüöäëñкирилица莭莽茝Ελληνικά😁😜😒"
+		    ISYM="Ελληνικάкирилица😁😜😒éàèüöäëñ莭莽茝";;
+	    esac
+	    BIGFILE="big.img"
+	    BASESYM="sym"
+	    BASEHARD="hard"
+	    SSYM="///sdir////ssym"
+	    USYM="///sdir////usym"
+	    LONGSYM="longsym"
+	    PSYM="psym"
+	    OSDIR=""
+	    GRUBDEVICE=loop0
+	    case x"$fs" in
+		xmdraid*)
+		    GRUBDEVICE="mduuid/`mdadm --detail --export $MOUNTDEVICE | grep MD_UUID=|sed 's,MD_UUID=,,g;s,:,,g'`";;
+		xlvm*)
+		    GRUBDEVICE="lvm/grub_test-testvol";;
+	    esac
+	    GRUBDIR="($GRUBDEVICE)"
+	    case x"$fs" in
+		x"zfs"*)
+		    OSDIR="grub fs/"
+		    GRUBDIR="($GRUBDEVICE)/grub fs@";;
+		x"tarfs" | x"cpio_"* | x"iso9660" | xjoliet | xrockridge | xrockridge_joliet | x"iso9660_1999" | xjoliet_1999 | xrockridge_1999 | xrockridge_joliet_1999 | x"ziso9660" | x"romfs" | x"squash4_"* | xafs)
+		    ;;
+		*)
+		    if ! mount -t "$MOUNTFS" "${MOUNTDEVICE}" "$MNTPOINTRW" -o ${MOUNTOPTS}${SELINUXOPTS}rw  ; then
+			echo "MOUNT FAILED."
+			for lodev in $LODEVICES; do
+			    while ! losetup -d "$lodev"; do
+				sleep 1
+			    done
+			done
+			exit 99;
+		    fi
+		    ;;
+	    esac
+	    case x"$fs" in
+		# FS LIMITATION: redundant storage
+		xmdraid* | xlvm*)
+		    BLOCKCNT=1048576;;
+		x"zfs_raid"* | x"zfs_stripe"* | x"zfs_mirror"* | x"btrfs_raid"*)
+		    BLOCKCNT=1048576;;
+
+		# FS LIMITATION: small filesystems
+		x"vfat16a" | x"msdos16a")
+		    BLOCKCNT=65536;;
+		x"vfat12a" | xmsdos12a)
+		    BLOCKCNT=32768;;
+		xminix)
+		    BLOCKCNT=2621440;;
+		xvfat16 | xmsdos16)
+		    if [ $BLKSIZE = 512 ] || [ $BLKSIZE = 1024 ]; then
+			BLOCKCNT=1048576
+		    else
+			BLOCKCNT=5242880
+		    fi
+		    ;;
+		xvfat12 | xmsdos12)
+		    BLOCKCNT=$((100*BLKSIZE))
+		    if [ $BLOCKCNT -gt 5242880 ]; then
+			BLOCKCNT=5242880;
+		    fi
+		    ;;
+		*)
+		    BLOCKCNT=5242880;;
+	    esac
+	    # Make sure file is not exact multiple of block size. This helps to force
+	    # tail packing in case of squash4.
+	    BLOCKCNT="$((BLOCKCNT-1))"
+	    case x"$fs" in
+		x"ntfscomp")
+		    setfattr -h -v 0x00000800 -n system.ntfs_attrib_be "$MNTPOINTRW/$OSDIR";;
+	    esac
+	    # OS LIMITATION: No AFS support under GNU/Linux
+	    mkdir "$MNTPOINTRW/$OSDIR/sdir"
+	    mkdir -p "$MNTPOINTRW/$OSDIR/$PDIR"
+	    "@builddir@"/garbage-gen $BLOCKCNT > "$MNTPOINTRW/$OSDIR/sdir/2.img"
+	    "@builddir@"/garbage-gen $BLOCKCNT > "$MNTPOINTRW/$OSDIR/$BASEFILE"
+	    "@builddir@"/garbage-gen $BLOCKCNT > "$MNTPOINTRW/$OSDIR/$NASTYFILE"
+	    "@builddir@"/garbage-gen $BLOCKCNT > "$MNTPOINTRW/$OSDIR/$IFILE"
+	    "@builddir@"/garbage-gen $BLOCKCNT > "$MNTPOINTRW/$OSDIR/$LONGNAME"
+	    "@builddir@"/garbage-gen $BLOCKCNT > "$MNTPOINTRW/$OSDIR/$PDIR/$PFIL"
+	    if [ $PDIR != $PDIR2 ]; then
+		"@builddir@"/garbage-gen $BLOCKCNT > "$MNTPOINTRW/$OSDIR/${PDIR2}/$PFIL"
+	    fi
+	    "@builddir@"/garbage-gen $BLOCKCNT > "$MNTPOINTRW/$OSDIR/CaSe"
+	    if [ x$CASESENS = xy ]; then
+		"@builddir@"/garbage-gen $BLOCKCNT > "$MNTPOINTRW/$OSDIR/cAsE"
+	    fi
+	    if (test x$fs = xvfat12a || test x$fs = xmsdos12a) && test x$BLKSIZE = x131072; then
+		# With this config there isn't enough space for full copy.
+		# Copy as much as we can
+		cp "${CFILESRC}" "$MNTPOINTRW/$OSDIR/${CFILE}" &> /dev/null;
+	    else
+
+		cp "${CFILESRC}" "$MNTPOINTRW/$OSDIR/${CFILE}";
+
+	    fi
+
+	    if [ x$NOSYMLINK != xy ]; then
+		ln -s "$BASEFILE" "$MNTPOINTRW/$OSDIR/$BASESYM"
+		ln -s "2.img" "$MNTPOINTRW/$OSDIR/$SSYM"
+		ln -s "../1.img" "$MNTPOINTRW/$OSDIR/$USYM"
+		ln -s "$LONGNAME" "$MNTPOINTRW/$OSDIR/$LONGSYM"
+		ln -s "${PDIR2}/$PFIL" "$MNTPOINTRW/$OSDIR/$PSYM"
+		ln -s "$IFILE" "$MNTPOINTRW/$OSDIR/$ISYM"
+	    fi
+	    if [ x$NOHARDLINK != xy ]; then
+		ln "$MNTPOINTRW/$OSDIR/$BASEFILE" "$MNTPOINTRW/$OSDIR/$BASEHARD"
+	    fi
+
+	    case x"$fs" in
+		x"afs")
+		    ;;
+		x"zfs"*)
+		    while ! zpool export "$FSLABEL" ; do
+			sleep 1;
+		    done
+		    sleep 2
+		    ;;
+		x"tarfs")
+		    (cd "$MASTER"; tar cf "${FSIMAGEP}0.img" .) ;;
+		x"cpio_"*)
+		    (cd "$MASTER"; find . | cpio -o -H "$(echo ${fs} | sed 's@^cpio_@@')" > "${FSIMAGEP}0.img" ) ;;
+		x"ziso9660")
+		    FSUUID=$(date -u +%Y-%m-%d-%H-%M-%S-00);
+		    xorriso -compliance rec_mtime -as mkisofs $XORRISOFS_CHARSET -iso-level 3 -graft-points -R -V "$FSLABEL" --modification-date=$(echo ${FSUUID} | sed 's/-//g;') -o "${FSIMAGEP}0.img" -- -add /="$MASTER" -- -zisofs default -set_filter_r --zisofs / -- ;;
+		x"iso9660" | xjoliet | xrockridge | xrockridge_joliet | x"iso9660_1999" | xjoliet_1999 | xrockridge_1999 | xrockridge_joliet_1999)
+		    FSUUID=$(date -u +%Y-%m-%d-%H-%M-%S-00);
+		    XORRISO_ARGS="-compliance rec_mtime"
+
+		    if [ -z "${fs##*rockridge*}" ]; then
+			XORRISO_ARGS="$XORRISO_ARGS -rockridge on"
+		    else
+			XORRISO_ARGS="$XORRISO_ARGS -rockridge off"
+		    fi
+
+		    XORRISO_ARGS="$XORRISO_ARGS -as mkisofs $XORRISOFS_CHARSET -graft-points"
+
+		    if [ -z "${fs##*1999*}" ]; then
+			XORRISO_ARGS="$XORRISO_ARGS -iso-level 4"
+		    else
+			XORRISO_ARGS="$XORRISO_ARGS -iso-level 3"
+		    fi
+
+		    if [ -z "${fs##*joliet*}" ]; then
+			XORRISO_ARGS="$XORRISO_ARGS -J -joliet-long"
+		    fi
+
+		    xorriso $XORRISO_ARGS -V "$FSLABEL" --modification-date=$(echo ${FSUUID} | sed 's/-//g;') -o "${FSIMAGEP}0.img" /="$MASTER" ;;
+		x"romfs")
+		    genromfs -V "$FSLABEL" -f "${FSIMAGEP}0.img" -d "$MASTER" ;;
+		xsquash4_*)
+		    echo mksquashfs "$MASTER" "${FSIMAGEP}0.img" -always-use-fragments -comp "${fs/squash4_/}" -b $BLKSIZE
+		    mksquashfs "$MASTER" "${FSIMAGEP}0.img" -always-use-fragments -comp "${fs/squash4_/}" -b $BLKSIZE ;;
+		x"bfs")
+		    sleep 1
+		    fusermount -u "$MNTPOINTRW"
+		    ;;
+		xlvm*)
+		    sleep 1
+		    for try in $(range 0 20 1); do
+			if umount "$MNTPOINTRW" ; then
+			    break;
+			fi
+			sleep 1;
+		    done
+		    UMOUNT_TIME=$(date -u "+%Y-%m-%d %H:%M:%S")
+		    sleep 1
+		    vgchange -a n grub_test
+		    ;;
+		xmdraid*)
+		    sleep 1
+		    for try in $(range 0 20 1); do
+			if umount "$MNTPOINTRW" ; then
+			    break;
+			fi
+			sleep 1;
+		    done
+		    UMOUNT_TIME=$(date -u "+%Y-%m-%d %H:%M:%S")
+		    sleep 1
+		    mdadm --stop /dev/md/"${fs}_$NDEVICES"
+		    ;;
+		*)
+		    sleep 1
+		    for try in $(range 0 20 1); do
+			if umount "$MNTPOINTRW" ; then
+			    break;
+			fi
+			sleep 1;
+		    done
+		    ;;
+	    esac
+	    sleep 1
+
+	    case x"$fs" in
+		x"zfs"*)
+		    "zpool" import -d /dev -R "$MNTPOINTRO" "$FSLABEL"
+		    ;;
+		x"tarfs")
+		    ;;
+		x"cpio_"*)
+		    ;;
+		x"ziso9660")
+		    ;;
+		xiso9660 | xrockridge | xjoliet | xrockridge_joliet)
+		    ;;
+		xiso9660_1999 | xrockridge_1999 | xjoliet_1999 | xrockridge_joliet_1999)
+		    ;;
+		x"romfs")
+		    ;;
+		xsquash4_*)
+		    ;;
+		xlvm*)
+		    vgchange -a y grub_test
+		    sleep 1
+		    mount -t "$MOUNTFS" "${MOUNTDEVICE}" "$MNTPOINTRO" -o ${MOUNTOPTS}${SELINUXOPTS}ro ;;
+		xmdraid*)
+		    mdadm --assemble /dev/md/"${fs}_$NDEVICES" $LODEVICES
+		    sleep 1
+		    mount -t "$MOUNTFS" "${MOUNTDEVICE}" "$MNTPOINTRO" -o ${MOUNTOPTS}${SELINUXOPTS}ro ;;
+		*)
+		    mount -t "$MOUNTFS" "${MOUNTDEVICE}" "$MNTPOINTRO" -o ${MOUNTOPTS}${SELINUXOPTS}ro ;;
+	    esac
+
+	    run_grubfstest ls -- -la
+	    case x"$fs" in
+		x"zfs"*)
+		    LSROUT=$(run_grubfstest ls -- -la "($GRUBDEVICE)/grub fs@/");;
+		*)
+		    LSROUT=$(run_grubfstest ls -- -la "($GRUBDEVICE)/");;
+	    esac
+	    if echo "$LSROUT" | grep -F " $BASEFILE" | grep "$BLOCKCNT" > /dev/null; then
+		:
+	    else
+		echo LIST FAIL
+		echo "$LSROUT"
+		TZ=UTC ls -l "$MNTPOINTRO"
+		exit 1
+	    fi
+
+	    if echo "$LSROUT" | grep -F " $NASTYFILE" | grep "$BLOCKCNT"> /dev/null; then
+		:
+	    else
+		echo NLIST FAIL
+		echo "$LSROUT"
+		TZ=UTC ls -lA "$MNTPOINTRO"
+		exit 1
+	    fi
+
+	    if echo "$LSROUT" | grep -F " $IFILE" | grep "$BLOCKCNT"> /dev/null; then
+		:
+	    else
+		echo ILIST FAIL
+		echo "$LSROUT"
+		TZ=UTC ls -l "$MNTPOINTRO"
+		exit 1
+	    fi
+
+	    if echo "$LSROUT" | grep -F " $LONGNAME" | grep "$BLOCKCNT"> /dev/null; then
+		:
+	    else
+		echo LONG LIST FAIL
+		echo "$LSROUT"
+		TZ=UTC ls -l "$MNTPOINTRO"
+		exit 1
+	    fi
+
+	    if [ x$NOFILETIME != xy ]; then
+		filetime=$(TZ=UTC ls --time-style=+%Y%m%d%H%M%S -l -d "$MNTPOINTRO/$OSDIR/$BASEFILE"|awk '{print $6; }')
+		if echo "$LSROUT" | grep -F "$filetime $BASEFILE" > /dev/null; then
+		    :
+		else
+		    echo TIME FAIL
+		    echo "$LSROUT"
+		    TZ=UTC ls -l "$MNTPOINTRO"
+		    exit 1
+		fi
+
+		filetime=$(TZ=UTC ls --time-style=+%Y%m%d%H%M%S -l -d "$MNTPOINTRO/$OSDIR/$LONGNAME"|awk '{print $6; }')
+		if echo "$LSROUT" | grep -F "$filetime $LONGNAME" > /dev/null; then
+		    :
+		else
+		    echo LONG TIME FAIL
+		    echo "$LSROUT"
+		    TZ=UTC ls -l "$MNTPOINTRO"
+		    exit 1
+		fi
+	    fi
+
+	    case x"$fs" in
+		x"zfs"*)
+		    LSROUT=$(run_grubfstest ls -- -la "($GRUBDEVICE)/grub fs@/.");;
+		*)
+		    LSROUT=$(run_grubfstest ls -- -la "($GRUBDEVICE)/.");;
+	    esac
+	    if echo "$LSROUT" | grep -F " $BASEFILE" | grep "$BLOCKCNT" > /dev/null; then
+		:
+	    else
+		echo DOT IN ROOTDIR FAIL
+		echo "$LSROUT"
+		TZ=UTC ls -l "$MNTPOINTRO"
+		exit 1
+	    fi
+
+	    case x"$fs" in
+		x"zfs"*)
+		    ;;
+		*)
+		    LSROUT=$(run_grubfstest ls -- -la "($GRUBDEVICE)/..");
+		    if echo "$LSROUT" | grep -F " $BASEFILE" | grep "$BLOCKCNT" > /dev/null; then
+			:
+		    else
+			echo DOTDOT IN ROOTDIR FAIL
+			echo "$LSROUT"
+			TZ=UTC ls -l "$MNTPOINTRO"
+			exit 1
+		    fi
+		    ;;
+	    esac
+
+	    case x"$fs" in
+		x"zfs"*)
+		    LSROUT=$(run_grubfstest ls -- -l "($GRUBDEVICE)/grub fs@/////sdir");;
+		*)
+		    LSROUT=$(run_grubfstest ls -- -l "($GRUBDEVICE)/////sdir");;
+	    esac
+	    if echo "$LSROUT" | grep -F " 2.img" | grep $BLOCKCNT > /dev/null; then
+		:
+	    else
+		echo SLIST FAIL
+		echo "$LSROUT"
+		TZ=UTC ls -l "$MNTPOINTRO/sdir"
+		exit 1
+	    fi
+
+	    case x"$fs" in
+		x"zfs"*)
+		    LSROUT=$(run_grubfstest ls -- -l "($GRUBDEVICE)/grub fs@/$PDIR");;
+		*)
+		    LSROUT=$(run_grubfstest ls -- -l "($GRUBDEVICE)/$PDIR");;
+	    esac
+	    if echo "$LSROUT" | grep -F " p.img" | grep $BLOCKCNT > /dev/null; then
+		:
+	    else
+		echo PLIST FAIL
+		echo "$LSROUT"
+		TZ=UTC ls -l "$MNTPOINTRO/$PDIR"
+		exit 1
+	    fi
+
+	    case x"$fs" in
+		x"zfs"*)
+		    LSROUT=$(run_grubfstest ls -- -l "($GRUBDEVICE)/grub fs@/sdir/.");;
+		*)
+		    LSROUT=$(run_grubfstest ls -- -l "($GRUBDEVICE)/sdir/.");;
+	    esac
+	    if echo "$LSROUT" | grep -F " 2.img" | grep $BLOCKCNT > /dev/null; then
+		:
+	    else
+		echo DOT IN SUBDIR FAIL
+		echo "$LSROUT"
+		TZ=UTC ls -l "$MNTPOINTRO/$OSDIR/sdir"
+		exit 1
+	    fi
+
+	    case x"$fs" in
+		x"zfs"*)
+		    LSROUT=$(run_grubfstest ls -- -l "($GRUBDEVICE)/grub fs@/sdir/../sdir");;
+		*)
+		    LSROUT=$(run_grubfstest ls -- -l "($GRUBDEVICE)/sdir/../sdir");;
+	    esac
+	    if echo "$LSROUT" | grep -F " 2.img" | grep $BLOCKCNT > /dev/null; then
+		:
+	    else
+		echo DOTDOT IN SUBDIR FAIL
+		echo "$LSROUT"
+		TZ=UTC ls -l "$MNTPOINTRO/$OSDIR/ssdir"
+		exit 1
+	    fi
+
+	    LSOUT=`run_grubfstest ls -- -l "($GRUBDEVICE)"`
+	    if [ x"$NOFSLABEL" = xy ]; then
+		:
+	    elif echo "$LSOUT" | grep -F "Label \`$FSLABEL'" > /dev/null; then
+		:
+	    else
+		echo LABEL FAIL
+		echo "$LSOUT"
+		blkid "${MOUNTDEVICE}"
+		exit 1
+	    fi
+
+	    # Inconsistencies between GRUB and blkid.
+	    case x"$fs" in
+		x"iso9660" | x"ziso9660" | xrockridge | xjoliet | xrockridge_joliet | x"iso9660_1999" | xrockridge_1999 | xjoliet_1999 | xrockridge_joliet_1999) ;;
+		x"zfs"*)
+		    for lodev in $LODEVICES; do
+			FSUUID=$(printf "%016x\n" $(blkid -o export "$lodev" |grep -F UUID=|sed s,UUID=,,g))
+			if [ "$FSUUID" != 0000000000000000 ]; then
+			    break;
+			fi
+		    done;;
+		*)
+		    FSUUID=`blkid -o export "${MOUNTDEVICE}" |grep -F UUID=|sed s,UUID=,,g`
+		    ;;
+	    esac
+	    case x"$fs" in
+		x"hfs"*)
+		    GRUBUUID="`run_grubfstest xnu_uuid "$GRUBDEVICE"`"
+		    if [ x"$GRUBUUID" = x"$FSUUID" ]; then
+			:
+		    else
+			echo UUID FAIL
+			echo "$LSOUT"
+			echo "$GRUBUUID"
+			for lodev in $LODEVICES; do
+			    blkid "$lodev"
+			done
+			exit 1
+		    fi
+		    ;;
+		# FS LIMITATION: romfs, cpio, tar, squash4, minix, AFS, old reiserfs and minix2
+		# have no UUID.
+		# GRUB LIMITATION: use creation date for squash4, AFFS and SFS?
+		# GRUB LIMITATION: use tags serials on UDF?
+		# GRUB LIMITATION: use root ctime on cpio, tar, minix*, UDF, reiserfs_old?
+		# GRUB LIMITATION: Support Atari UUIDs
+		x"romfs" | x"cpio_"* | x"tarfs" | x"squash4_"* | x"minix" \
+		    | x"minix2" | x"minix3" | x"affs" | xaffs_intl \
+		    | x"udf" | xvfat12a | xvfat16a | xmsdos12a | xmsdos16a | xafs | xsfs* \
+		    | xreiserfs_old)
+		    ;;
+		*)
+		    if [ x"$FSUUID" = x ]; then
+			echo "Warning: blkid couldn't retrieve UUID"
+		    elif echo "$LSOUT" | grep -F 'UUID '"$FSUUID"' ' > /dev/null; then
+			:
+		    else
+			echo UUID FAIL
+			echo "$FSUUID"
+			echo "$LSOUT"
+			blkid "${MOUNTDEVICE}"
+			exit 1
+		    fi
+		    ;;
+	    esac
+
+	    if [ x$NOFSTIME != xy ]; then
+		case x$fs in
+		    xiso9660 | xziso9660 | xrockridge | xjoliet | xrockridge_joliet | xiso9660_1999 | xrockridge_1999 | xjoliet_1999 | xrockridge_joliet_1999)
+			FSTIME="$(date -d "$(echo ${FSUUID} | awk -F - '{ print $1"-"$2"-"$3" "$4":"$5":"$6 ;}')" '+%Y-%m-%d %H:%M:%S')";;
+		    xlvm*|xmdraid*)
+			# With some abstractions like mdraid flushing to disk
+			# may be delayed for a long time.
+			FSTIME="$UMOUNT_TIME";;
+		    xsquash*)
+			# Creating the squash image may take more than a few
+			# seconds. Use the more accurate timestamp from the
+			# superblock.
+			FSTIME="$(unsquashfs -s "${FSIMAGEP}0.img" | grep ^Creation | awk '{print $6 " " $7 " " $8 " " $9 " " $10; }')"
+			FSTIME="$(date -d "$FSTIME" -u '+%Y-%m-%d %H:%M:%S')";;
+		    *)
+			FSTIME="$(TZ=UTC ls --time-style="+%Y-%m-%d_%H:%M:%S" -l -d "${FSIMAGEP}0.img"|awk '{print $6; }'|sed 's,_, ,g')";;
+		esac
+		# With some abstractions like mdraid computing of UMOUNT_TIME
+		# is not precise. Account for small difference here.
+		FSTIMEM1="$(date -d "$FSTIME UTC -1 second" -u "+%Y-%m-%d %H:%M:%S")"
+		FSTIMEM2="$(date -d "$FSTIME UTC -2 second" -u "+%Y-%m-%d %H:%M:%S")"
+		FSTIMEM3="$(date -d "$FSTIME UTC -3 second" -u "+%Y-%m-%d %H:%M:%S")"
+
+		if echo "$LSOUT" | grep -F 'Last modification time '"$FSTIME" > /dev/null || echo "$LSOUT" | grep -F 'Last modification time '"$FSTIMEM1" > /dev/null || echo "$LSOUT" | grep -F 'Last modification time '"$FSTIMEM2" || echo "$LSOUT" | grep -F 'Last modification time '"$FSTIMEM3" > /dev/null; then
+		    :
+		else
+		    echo FSTIME FAIL
+		    echo "$FSTIME"
+		    echo "$LSOUT"
+		    exit 1
+		fi
+	    fi
+
+	    if [ x$NOHARDLINK != xy ]; then
+		if run_grubfstest cmp "$GRUBDIR/$BASEHARD" "$MNTPOINTRO/$OSDIR/$BASEFILE"  ; then
+		    :
+		else
+		    echo HARDLINK FAIL
+		    exit 1
+		fi
+	    fi
+
+	    if [ x$NOSYMLINK != xy ]; then
+		if run_grubfstest cmp "$GRUBDIR/$BASESYM" "$MNTPOINTRO/$OSDIR/$BASEFILE"  ; then
+		    :
+		else
+		    echo SYMLINK FAIL
+		    exit 1
+		fi
+		if run_grubfstest cmp "$GRUBDIR/$LONGSYM" "$MNTPOINTRO/$OSDIR/$LONGNAME"  ; then
+		    :
+		else
+		    echo LONG SYMLINK FAIL
+		    exit 1
+		fi
+		if run_grubfstest cmp "$GRUBDIR/$ISYM" "$MNTPOINTRO/$OSDIR/$IFILE"  ; then
+		    :
+		else
+		    echo INTL SYMLINK FAIL
+		    exit 1
+		fi
+		if run_grubfstest cmp "$GRUBDIR/$SSYM" "$MNTPOINTRO/$OSDIR/////sdir/////2.img"  ; then
+		    :
+		else
+		    echo SDIR SYMLINK FAIL
+		    exit 1
+		fi
+		if run_grubfstest cmp "$GRUBDIR/$USYM" "$MNTPOINTRO/$OSDIR/1.img"  ; then
+		    :
+		else
+		    echo SDIR SYMLINK FAIL
+		    exit 1
+		fi
+		if run_grubfstest cmp "$GRUBDIR/$PSYM" "$MNTPOINTRO/$OSDIR/${PDIR2}/$PFIL"  ; then
+		    :
+		else
+		    echo PATH LONG SYMLINK FAIL
+		    exit 1
+		fi
+	    fi
+
+	    if run_grubfstest cmp "$GRUBDIR/$BASEFILE" "$MNTPOINTRO/$OSDIR/$BASEFILE"  ; then
+		:
+	    else
+		echo READ FAIL
+		exit 1
+	    fi
+	    if run_grubfstest cmp "$GRUBDIR/$NASTYFILE" "$MNTPOINTRO/$OSDIR/$NASTYFILE"  ; then
+		:
+	    else
+		echo NREAD FAIL
+		exit 1
+	    fi
+	    # Reference archive contains original name
+	    if run_grubfstest cmp "$GRUBDIR/$LONGNAME" "$MNTPOINTRO/$OSDIR/$LONGNAME"  ; then
+		:
+	    else
+		echo LONG NAME READ FAIL
+		exit 1
+	    fi
+	    if run_grubfstest cmp "$GRUBDIR/////sdir/////2.img" "$MNTPOINTRO/$OSDIR/sdir/2.img"  ; then
+		:
+	    else
+		echo LONG NAME READ FAIL
+		exit 1
+	    fi
+	    if run_grubfstest cmp "$GRUBDIR/$IFILE" "$MNTPOINTRO/$OSDIR/$IFILE"  ; then
+		:
+	    else
+		echo IREAD FAIL
+		exit 1
+	    fi
+	    if run_grubfstest cmp "$GRUBDIR/$PDIR/$PFIL" "$MNTPOINTRO/$OSDIR/$PDIR/$PFIL"  ; then
+		:
+	    else
+		echo PREAD FAIL
+		echo cmp "$GRUBDIR/$PDIR/$PFIL" "$MNTPOINTRO/$OSDIR/$PDIR/$PFIL"
+		exit 1
+	    fi
+	    ok=true
+	    if ! run_grubfstest cmp "$GRUBDIR/${CFILE}" "$MNTPOINTRO/$OSDIR/${CFILE}"  ; then
+		ok=false;
+	    fi
+	    if  test x$ok = xtrue; then
+		:
+	    else
+		echo CREAD FAIL
+		exit 1
+	    fi
+
+	    if [ x$CASESENS = xy ]; then
+		if run_grubfstest cmp "$GRUBDIR/CaSe" "$MNTPOINTRO/$OSDIR/CaSe"  ; then
+		    :
+		else
+		    echo CASE1 READ FAIL
+		    exit 1
+		fi
+		if run_grubfstest cmp "$GRUBDIR/cAsE" "$MNTPOINTRO/$OSDIR/cAsE"  ; then
+		    :
+		else
+		    exit 1
+		fi
+		if cmp "$MNTPOINTRO/$OSDIR/cAsE" "$MNTPOINTRO/$OSDIR/CaSe" > /dev/null ; then
+		    exit 1
+		fi
+		if  test x$ok = xtrue; then
+		    :
+		else
+		    echo CASE READ FAIL
+		    exit 1
+		fi
+	    else
+		# OS LIMITATION: Linux make FAT (partially) case-sensitive...
+		# ISO9660 is generated and master doesn't change
+		case x$fs in
+		    xiso9660 | xvfat*)
+			CASEX=CaSe;;
+		    *)
+			CASEX=cAsE;;
+		esac
+		if run_grubfstest cmp "$GRUBDIR/CaSe" "$MNTPOINTRO/$OSDIR/${CASEX}"  ; then
+		    :
+		else
+		    echo CASE1 READ FAIL
+		    exit 1
+		fi
+		if run_grubfstest cmp "$GRUBDIR/cAsE" "$MNTPOINTRO/$OSDIR/CaSe"  ; then
+		    :
+		else
+		    echo CASE2 READ FAIL
+		    exit 1
+		fi
+		if ! cmp "$MNTPOINTRO/$OSDIR/CaSe" "$MNTPOINTRO/$OSDIR/${CASEX}" > /dev/null ; then
+		    echo CASE CMP READ FAIL
+		    exit 1
+		fi
+		if  test x$ok = xtrue; then
+		    :
+		else
+		    echo CASE READ FAIL
+		    exit 1
+		fi
+	    fi
+
+	    case x"$fs" in
+		x"zfs"*)
+		    while ! zpool export "$FSLABEL" ; do
+			sleep 1;
+		    done
+		    sleep 5;;
+		x"tarfs" | x"cpio_"* | xrockridge | xjoliet | xrockridge_joliet | x"ziso9660" | x"romfs" | x"squash4_"* | xiso9660 | xiso9660_1999 | xrockridge_1999 | xjoliet_1999 | xrockridge_joliet_1999)
+		    rm -rf "$MNTPOINTRW";;
+		x"afs")
+		    rm -rf "$MNTPOINTRO"
+		    ;;
+		*)
+		    sleep 1
+		    umount "$MNTPOINTRO"  || true
+		    umount "$MNTPOINTRW" || true
+	    esac
+	    sleep 1
+	    case x"$fs" in
+		xmdraid*)
+		    mdadm --stop /dev/md/"${fs}_$NDEVICES"
+		    sleep 1
+		    ;;
+		xlvm*)
+		    vgchange -a n grub_test
+		    sleep 1
+		    ;;
+	    esac
+	    case x"$fs" in
+		x"tarfs" | x"cpio_"* | x"iso9660" | xrockridge | xjoliet | xrockridge_joliet | x"ziso9660" | x"romfs" | x"squash4_"* | x"iso9660_1999" | xrockridge_1999 | xjoliet_1999 | xrockridge_joliet_1999) ;;
+		*)
+		    for lodev in $LODEVICES; do
+			while ! losetup -d "$lodev"; do
+			    sleep 1
+			done
+		    done;;
+	    esac
+	    for i in $(range 0 $((NDEVICES-1)) 1); do
+		rm "$FSIMAGEP${i}.img"
+	    done
+	    if [ x"$fs" = x"zfs" ]; then
+		rmdir "$MNTPOINTRW"/"grub fs"  || true
+		rmdir "$MNTPOINTRO"/"grub fs"  || true
+	    fi
+	    rm -rf "$MNTPOINTRW"  || true
+	    rm -rf "$MNTPOINTRO"  || true
+	done
+    done
+done
+rmdir "${tempdir}"

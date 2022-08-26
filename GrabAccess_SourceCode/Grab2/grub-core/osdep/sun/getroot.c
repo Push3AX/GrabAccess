@@ -1,0 +1,126 @@
+/*
+ *  GRUB  --  GRand Unified Bootloader
+ *  Copyright (C) 1999,2000,2001,2002,2003,2006,2007,2008,2009,2010,2011,2012,2013  Free Software Foundation, Inc.
+ *
+ *  GRUB is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  GRUB is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <config-util.h>
+#include <config.h>
+
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <dirent.h>
+#include <errno.h>
+#include <error.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+
+#include <grub/types.h>
+
+#include <grub/util/misc.h>
+
+#include <grub/mm.h>
+#include <grub/misc.h>
+#include <grub/emu/misc.h>
+#include <grub/emu/hostdisk.h>
+#include <grub/emu/getroot.h>
+
+#include <sys/wait.h>
+
+# include <sys/types.h>
+# include <sys/mkdev.h>
+# include <sys/dkio.h>
+
+
+char *
+grub_util_part_to_disk (const char *os_dev,
+			struct stat *st,
+			int *is_part)
+{
+  char *colon = grub_strrchr (os_dev, ':');
+
+  if (! S_ISCHR (st->st_mode))
+    {
+      *is_part = 0;
+      return xstrdup (os_dev);
+    }
+
+  if (grub_memcmp (os_dev, "/devices", sizeof ("/devices") - 1) == 0
+      && colon)
+    {
+      char *ret = xmalloc (colon - os_dev + sizeof (":q,raw"));
+      if (grub_strcmp (colon, ":q,raw") != 0)
+	*is_part = 1;
+      grub_memcpy (ret, os_dev, colon - os_dev);
+      grub_memcpy (ret + (colon - os_dev), ":q,raw", sizeof (":q,raw"));
+      return ret;
+    }
+  else
+    return xstrdup (os_dev);
+}
+
+enum grub_dev_abstraction_types
+grub_util_get_dev_abstraction_os (const char *os_dev __attribute__((unused)))
+{
+  return GRUB_DEV_ABSTRACTION_NONE;
+}
+
+int
+grub_util_pull_device_os (const char *os_dev __attribute__ ((unused)),
+			  enum grub_dev_abstraction_types ab __attribute__ ((unused)))
+{
+  return 0;
+}
+
+char *
+grub_util_get_grub_dev_os (const char *os_dev __attribute__ ((unused)))
+{
+  return NULL;
+}
+
+grub_disk_addr_t
+grub_util_find_partition_start_os (const char *dev)
+{
+  int fd;
+  struct extpart_info pinfo;
+
+  fd = open (dev, O_RDONLY);
+  if (fd == -1)
+    {
+      grub_error (GRUB_ERR_BAD_DEVICE, N_("cannot open `%s': %s"),
+		  dev, strerror (errno));
+      return 0;
+    }
+
+  if (ioctl (fd, DKIOCEXTPARTINFO, &pinfo))
+    {
+      grub_error (GRUB_ERR_BAD_DEVICE,
+		  "cannot get disk geometry of `%s'", dev);
+      close (fd);
+      return 0;
+    }
+
+  close (fd);
+
+  return pinfo.p_start;
+}

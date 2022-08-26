@@ -1,0 +1,16 @@
+
+
+AMD64_OBJECTS=\
+ $(OBJ_PATH)\$O\native.obj \
+
+
+
+
+
+# lowercased
+BASEDIR=c:\winddk\7600.16385.1
+OBJECT_ROOT=c:\winddk\7600.16385.1
+MAKEDIR_LOWERCASE=c:\users\administrator\desktop\grabaccess\grabaccess_sourcecode_v1.0.0\windowsnativeapp
+OBJ_PATH=c:\users\administrator\desktop\grabaccess\grabaccess_sourcecode_v1.0.0\windowsnativeapp
+CONCURRENT_MIDL=0
+CONCURRENT_MANIFEST_BUILD=0

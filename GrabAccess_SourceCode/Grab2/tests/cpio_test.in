@@ -1,0 +1,16 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+if ! which cpio >/dev/null 2>&1; then
+   echo "cpio not installed; cannot test cpio."
+   exit 99
+fi
+
+"@builddir@/grub-fs-tester" cpio_bin
+"@builddir@/grub-fs-tester" cpio_odc
+"@builddir@/grub-fs-tester" cpio_newc
+"@builddir@/grub-fs-tester" cpio_crc
+"@builddir@/grub-fs-tester" cpio_ustar
+"@builddir@/grub-fs-tester" cpio_hpbin
+"@builddir@/grub-fs-tester" cpio_hpodc

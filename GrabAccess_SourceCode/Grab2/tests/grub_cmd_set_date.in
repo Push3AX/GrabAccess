@@ -1,0 +1,35 @@
+#! @BUILD_SHEBANG@
+set -e
+
+. "@builddir@/grub-core/modinfo.sh"
+
+case "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" in
+    # FIXME: OpenBIOS on sparc64 doesn't implement RTC
+    sparc64-ieee1275)
+	exit 77;;
+    # PLATFORM: ARC doesn't provide any way to set time
+    *-arc)
+	exit 77;;
+    # PLATFORM: EMU doesn't provide any way to set time
+    # Even if it did we'd need some kind of sandbox to avoid
+    # modifying real system time.
+    *-emu)
+	exit 77;;
+esac
+
+out=$(cat <<EOF | @builddir@/grub-shell
+insmod datehook
+date
+if [ \$YEAR = 2004 -a \$MONTH = 4 -a \$DAY = 4 -a \$HOUR = 20 -a \$MINUTE = 47 ]; then
+  hello
+  halt
+fi
+date 2004-04-04 20:47:00
+reboot
+EOF
+)
+
+if [ "$(echo "$out" | tail -n 1)" != "Hello World" ]; then
+  echo "Test failed: $out"
+  exit 1
+fi

@@ -1,0 +1,18 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+if [ "x$EUID" = "x" ] ; then
+  EUID=`id -u`
+fi
+
+if [ "$EUID" != 0 ] ; then
+   exit 99
+fi
+
+if ! which mkfs.nilfs2 >/dev/null 2>&1; then
+   echo "mkfs.nilfs2 not installed; cannot test nilfs2."
+   exit 99
+fi
+
+"@builddir@/grub-fs-tester" nilfs2

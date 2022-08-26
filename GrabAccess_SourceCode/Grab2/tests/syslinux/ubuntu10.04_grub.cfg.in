@@ -1,0 +1,236 @@
+  background_image '@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux'/'splash.png'
+# D-I config version 2.0
+  # UNSUPPORTED command 'menu hshift 13'
+  # UNSUPPORTED command 'menu width 49'
+  # UNSUPPORTED command 'menu margin 8'
+
+  # UNSUPPORTED command 'menu title Installer boot menu'
+  # UNSUPPORTED command 'menu color title	* #FFFFFFFF *'
+  # UNSUPPORTED command 'menu color border	* #00000000 #00000000 none'
+  # UNSUPPORTED command 'menu color sel		* #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color hotsel	1;7;37;40 #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color tabmsg	* #ffffffff #00000000 *'
+  # UNSUPPORTED command 'menu color help		37;40 #ffdddd00 #00000000 none'
+  # UNSUPPORTED command 'menu vshift 12'
+  # UNSUPPORTED command 'menu rows 10'
+  # UNSUPPORTED command 'menu helpmsgrow 15'
+# The command line must be at least one line from the bottom.
+  # UNSUPPORTED command 'menu cmdlinerow 16'
+  # UNSUPPORTED command 'menu timeoutrow 16'
+  # UNSUPPORTED command 'menu tabmsgrow 18'
+  # UNSUPPORTED command 'menu tabmsg Press ENTER to boot or TAB to edit a menu entry'
+set timeout=5
+ default='vesamenu.c32'
+menuentry 'Try Ubuntu without installing' --hotkey 't' --id 'live' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/casper/vmlinuz' file=/cdrom/preseed/ubuntu.seed boot=casper initrd=/casper/initrd.lz quiet splash --
+  initrd$linux_suffix '/'/'/casper/initrd.lz' 
+}
+menuentry 'Install Ubuntu' --hotkey 'i' --id 'live-install' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/casper/vmlinuz' file=/cdrom/preseed/ubuntu.seed boot=casper only-ubiquity initrd=/casper/initrd.lz quiet splash --
+  initrd$linux_suffix '/'/'/casper/initrd.lz' 
+}
+menuentry 'Check disc for defects' --hotkey 'c' --id 'check' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/casper/vmlinuz' boot=casper integrity-check initrd=/casper/initrd.lz quiet splash --
+  initrd$linux_suffix '/'/'/casper/initrd.lz' 
+}
+menuentry 'Test memory' --hotkey 'm' --id 'memtest' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/install/mt86plus' 
+}
+menuentry 'Boot from first hard disk' --hotkey 'b' --id 'hd' {
+# File (host)/@simplified_abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/gtk.cfg not found
+  # UNSUPPORTED command 'menu begin advanced'
+  # UNSUPPORTED command 'menu title Advanced options'
+  # UNSUPPORTED command 'menu color title	* #FFFFFFFF *'
+  # UNSUPPORTED command 'menu color border	* #00000000 #00000000 none'
+  # UNSUPPORTED command 'menu color sel		* #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color hotsel	1;7;37;40 #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color tabmsg	* #ffffffff #00000000 *'
+  # UNSUPPORTED command 'menu color help		37;40 #ffdddd00 #00000000 none'
+  # UNSUPPORTED command 'menu vshift 12'
+  # UNSUPPORTED command 'menu rows 10'
+  # UNSUPPORTED command 'menu helpmsgrow 15'
+# The command line must be at least one line from the bottom.
+  # UNSUPPORTED command 'menu cmdlinerow 16'
+  # UNSUPPORTED command 'menu timeoutrow 16'
+  # UNSUPPORTED command 'menu tabmsgrow 18'
+  # UNSUPPORTED command 'menu tabmsg Press ENTER to boot or TAB to edit a menu entry'
+  root=hd0;
+  chainloader +1;
+}
+menuentry 'Back..' --hotkey 'b' --id 'mainmenu' {
+  # UNSUPPORTED command 'menu exit'
+# File (host)/@simplified_abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/adgtk.cfg not found
+  # UNSUPPORTED command 'menu end'
+  # UNSUPPORTED entry type 0
+true;
+}
+menuentry 'Help' --hotkey 'h' --id 'help' {
+  # UNSUPPORTED command 'ui gfxboot bootlogo'
+#'@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux'/'prompt.cfg' (host)@simplified_abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/prompt.cfg:
+  background_image '@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/'/'splash.png'
+  # UNSUPPORTED command 'display f1.txt'
+  # UNSUPPORTED command 'menu hshift 13'
+  # UNSUPPORTED command 'menu width 49'
+  # UNSUPPORTED command 'menu margin 8'
+
+  # UNSUPPORTED command 'menu title Installer boot menu'
+  # UNSUPPORTED command 'menu color title	* #FFFFFFFF *'
+  # UNSUPPORTED command 'menu color border	* #00000000 #00000000 none'
+  # UNSUPPORTED command 'menu color sel		* #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color hotsel	1;7;37;40 #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color tabmsg	* #ffffffff #00000000 *'
+  # UNSUPPORTED command 'menu color help		37;40 #ffdddd00 #00000000 none'
+  # UNSUPPORTED command 'menu vshift 12'
+  # UNSUPPORTED command 'menu rows 10'
+  # UNSUPPORTED command 'menu helpmsgrow 15'
+# The command line must be at least one line from the bottom.
+  # UNSUPPORTED command 'menu cmdlinerow 16'
+  # UNSUPPORTED command 'menu timeoutrow 16'
+  # UNSUPPORTED command 'menu tabmsgrow 18'
+  # UNSUPPORTED command 'menu tabmsg Press ENTER to boot or TAB to edit a menu entry'
+set timeout=5
+ default='live'
+menuentry 'Try Ubuntu without installing' --hotkey 't' --id 'live' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/casper/vmlinuz' file=/cdrom/preseed/ubuntu.seed boot=casper initrd=/casper/initrd.lz quiet splash --
+  initrd$linux_suffix '/'/'/casper/initrd.lz' 
+}
+menuentry 'Install Ubuntu' --hotkey 'i' --id 'live-install' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/casper/vmlinuz' file=/cdrom/preseed/ubuntu.seed boot=casper only-ubiquity initrd=/casper/initrd.lz quiet splash --
+  initrd$linux_suffix '/'/'/casper/initrd.lz' 
+}
+menuentry 'Check disc for defects' --hotkey 'c' --id 'check' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/casper/vmlinuz' boot=casper integrity-check initrd=/casper/initrd.lz quiet splash --
+  initrd$linux_suffix '/'/'/casper/initrd.lz' 
+}
+menuentry 'Test memory' --hotkey 'm' --id 'memtest' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/install/mt86plus' 
+}
+menuentry 'Boot from first hard disk' --hotkey 'b' --id 'hd' {
+# File (host)/@simplified_abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux//gtk.cfg not found
+  # UNSUPPORTED command 'menu begin advanced'
+  # UNSUPPORTED command 'menu title Advanced options'
+  # UNSUPPORTED command 'menu color title	* #FFFFFFFF *'
+  # UNSUPPORTED command 'menu color border	* #00000000 #00000000 none'
+  # UNSUPPORTED command 'menu color sel		* #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color hotsel	1;7;37;40 #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color tabmsg	* #ffffffff #00000000 *'
+  # UNSUPPORTED command 'menu color help		37;40 #ffdddd00 #00000000 none'
+  # UNSUPPORTED command 'menu vshift 12'
+  # UNSUPPORTED command 'menu rows 10'
+  # UNSUPPORTED command 'menu helpmsgrow 15'
+# The command line must be at least one line from the bottom.
+  # UNSUPPORTED command 'menu cmdlinerow 16'
+  # UNSUPPORTED command 'menu timeoutrow 16'
+  # UNSUPPORTED command 'menu tabmsgrow 18'
+  # UNSUPPORTED command 'menu tabmsg Press ENTER to boot or TAB to edit a menu entry'
+  root=hd0;
+  chainloader +1;
+}
+menuentry 'Back..' --hotkey 'b' --id 'mainmenu' {
+  # UNSUPPORTED command 'menu exit'
+# File (host)/@simplified_abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux//adgtk.cfg not found
+  # UNSUPPORTED command 'menu end'
+  # UNSUPPORTED entry type 0
+true;
+}
+menuentry 'Help' --hotkey 'h' --id 'help' {
+#'@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/'/'prompt.cfg' (host)@simplified_abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/prompt.cfg:
+  syslinux_configfile -r '/'/'/' -c '@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/'/'' '@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/'/'prompt.cfg'
+}
+menuentry 'menu' --id 'menu' {
+  # UNSUPPORTED command 'f1 f1.txt'
+  # UNSUPPORTED command 'f2 f2.txt'
+  # UNSUPPORTED command 'f3 f3.txt'
+  # UNSUPPORTED command 'f4 f4.txt'
+  # UNSUPPORTED command 'f5 f5.txt'
+  # UNSUPPORTED command 'f6 f6.txt'
+  # UNSUPPORTED command 'f7 f7.txt'
+  # UNSUPPORTED command 'f8 f8.txt'
+  # UNSUPPORTED command 'f9 f9.txt'
+  # UNSUPPORTED command 'f0 f10.txt'
+#'@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/'/'isolinux.cfg' (host)@simplified_abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/isolinux.cfg:
+  background_image '@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux//'/'splash.png'
+# D-I config version 2.0
+  # UNSUPPORTED command 'menu hshift 13'
+  # UNSUPPORTED command 'menu width 49'
+  # UNSUPPORTED command 'menu margin 8'
+
+  # UNSUPPORTED command 'menu title Installer boot menu'
+  # UNSUPPORTED command 'menu color title	* #FFFFFFFF *'
+  # UNSUPPORTED command 'menu color border	* #00000000 #00000000 none'
+  # UNSUPPORTED command 'menu color sel		* #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color hotsel	1;7;37;40 #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color tabmsg	* #ffffffff #00000000 *'
+  # UNSUPPORTED command 'menu color help		37;40 #ffdddd00 #00000000 none'
+  # UNSUPPORTED command 'menu vshift 12'
+  # UNSUPPORTED command 'menu rows 10'
+  # UNSUPPORTED command 'menu helpmsgrow 15'
+# The command line must be at least one line from the bottom.
+  # UNSUPPORTED command 'menu cmdlinerow 16'
+  # UNSUPPORTED command 'menu timeoutrow 16'
+  # UNSUPPORTED command 'menu tabmsgrow 18'
+  # UNSUPPORTED command 'menu tabmsg Press ENTER to boot or TAB to edit a menu entry'
+set timeout=5
+ default='vesamenu.c32'
+menuentry 'Try Ubuntu without installing' --hotkey 't' --id 'live' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/casper/vmlinuz' file=/cdrom/preseed/ubuntu.seed boot=casper initrd=/casper/initrd.lz quiet splash --
+  initrd$linux_suffix '/'/'/casper/initrd.lz' 
+}
+menuentry 'Install Ubuntu' --hotkey 'i' --id 'live-install' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/casper/vmlinuz' file=/cdrom/preseed/ubuntu.seed boot=casper only-ubiquity initrd=/casper/initrd.lz quiet splash --
+  initrd$linux_suffix '/'/'/casper/initrd.lz' 
+}
+menuentry 'Check disc for defects' --hotkey 'c' --id 'check' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/casper/vmlinuz' boot=casper integrity-check initrd=/casper/initrd.lz quiet splash --
+  initrd$linux_suffix '/'/'/casper/initrd.lz' 
+}
+menuentry 'Test memory' --hotkey 'm' --id 'memtest' {
+ if test x$grub_platform = xpc; then linux_suffix=16; else linux_suffix= ; fi
+  linux$linux_suffix '/'/'/install/mt86plus' 
+}
+menuentry 'Boot from first hard disk' --hotkey 'b' --id 'hd' {
+# File (host)/@simplified_abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux///gtk.cfg not found
+  # UNSUPPORTED command 'menu begin advanced'
+  # UNSUPPORTED command 'menu title Advanced options'
+  # UNSUPPORTED command 'menu color title	* #FFFFFFFF *'
+  # UNSUPPORTED command 'menu color border	* #00000000 #00000000 none'
+  # UNSUPPORTED command 'menu color sel		* #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color hotsel	1;7;37;40 #ffffffff #76a1d0ff *'
+  # UNSUPPORTED command 'menu color tabmsg	* #ffffffff #00000000 *'
+  # UNSUPPORTED command 'menu color help		37;40 #ffdddd00 #00000000 none'
+  # UNSUPPORTED command 'menu vshift 12'
+  # UNSUPPORTED command 'menu rows 10'
+  # UNSUPPORTED command 'menu helpmsgrow 15'
+# The command line must be at least one line from the bottom.
+  # UNSUPPORTED command 'menu cmdlinerow 16'
+  # UNSUPPORTED command 'menu timeoutrow 16'
+  # UNSUPPORTED command 'menu tabmsgrow 18'
+  # UNSUPPORTED command 'menu tabmsg Press ENTER to boot or TAB to edit a menu entry'
+  root=hd0;
+  chainloader +1;
+}
+menuentry 'Back..' --hotkey 'b' --id 'mainmenu' {
+  # UNSUPPORTED command 'menu exit'
+# File (host)/@simplified_abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux///adgtk.cfg not found
+  # UNSUPPORTED command 'menu end'
+  # UNSUPPORTED entry type 0
+true;
+}
+menuentry 'Help' --hotkey 'h' --id 'help' {
+  # UNSUPPORTED command 'ui gfxboot bootlogo'
+#'@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux//'/'prompt.cfg' (host)@simplified_abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/prompt.cfg:
+  syslinux_configfile -r '/'/'/' -c '@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux//'/'' '@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux//'/'prompt.cfg'
+}
+}
+}

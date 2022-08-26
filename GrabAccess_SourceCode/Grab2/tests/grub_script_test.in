@@ -1,0 +1,15 @@
+#! @builddir@/grub-shell-tester
+
+for device in 'hd0' 'fd0'; do
+    # But search them if their search has been inforced
+    set fd0search="no"
+    if [ "$device" != "fd0" -a "$device" != "cd" \
+    -o \
+    "$device" = "fd0" -a "$fd0search" = "yes" ]\
+    ; then
+      echo "Yes"
+    else
+      echo "No"
+    fi
+
+done

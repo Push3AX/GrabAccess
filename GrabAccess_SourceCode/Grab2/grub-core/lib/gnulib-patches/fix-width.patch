@@ -1,0 +1,217 @@
+diff --git a/lib/argp-fmtstream.c b/lib/argp-fmtstream.c
+index ba6a407f7..d0685b3d4 100644
+--- a/lib/argp-fmtstream.c
++++ b/lib/argp-fmtstream.c
+@@ -28,9 +28,11 @@
+ #include <errno.h>
+ #include <stdarg.h>
+ #include <ctype.h>
++#include <wchar.h>
+ 
+ #include "argp-fmtstream.h"
+ #include "argp-namefrob.h"
++#include "mbswidth.h"
+ 
+ #ifndef ARGP_FMTSTREAM_USE_LINEWRAP
+ 
+@@ -115,6 +117,51 @@ weak_alias (__argp_fmtstream_free, argp_fmtstream_free)
+ #endif
+ #endif
+ 
++
++/* Return the pointer to the first character that doesn't fit in l columns.  */
++static inline const ptrdiff_t
++add_width (const char *ptr, const char *end, size_t l)
++{
++  mbstate_t ps;
++  const char *ptr0 = ptr;
++
++  memset (&ps, 0, sizeof (ps));
++
++  while (ptr < end)
++    {
++      wchar_t wc;
++      size_t s, k;
++
++      s = mbrtowc (&wc, ptr, end - ptr, &ps);
++      if (s == (size_t) -1)
++	break;
++      if (s == (size_t) -2)
++	{
++	  if (1 >= l)
++	    break;
++	  l--;
++	  ptr++;
++	  continue;
++	}
++
++      if (wc == '\e' && ptr + 3 < end
++	  && ptr[1] == '[' && (ptr[2] == '0' || ptr[2] == '1')
++	  && ptr[3] == 'm')
++	{
++	  ptr += 4;
++	  continue;
++	}
++
++      k = wcwidth (wc);
++
++      if (k >= l)
++	break;
++      l -= k;
++      ptr += s;
++    }
++  return ptr - ptr0;
++}
++
+ /* Process FS's buffer so that line wrapping is done from POINT_OFFS to the
+    end of its buffer.  This code is mostly from glibc stdio/linewrap.c.  */
+ void
+@@ -168,13 +215,15 @@ __argp_fmtstream_update (argp_fmtstream_t fs)
+       if (!nl)
+         {
+           /* The buffer ends in a partial line.  */
++          size_t display_width = mbsnwidth (buf, fs->p - buf,
++                                            MBSW_STOP_AT_NUL);
+ 
+-          if (fs->point_col + len < fs->rmargin)
++          if (fs->point_col + display_width < fs->rmargin)
+             {
+               /* The remaining buffer text is a partial line and fits
+                  within the maximum line width.  Advance point for the
+                  characters to be written and stop scanning.  */
+-              fs->point_col += len;
++              fs->point_col += display_width;
+               break;
+             }
+           else
+@@ -182,14 +231,18 @@ __argp_fmtstream_update (argp_fmtstream_t fs)
+                the end of the buffer.  */
+             nl = fs->p;
+         }
+-      else if (fs->point_col + (nl - buf) < (ssize_t) fs->rmargin)
+-        {
+-          /* The buffer contains a full line that fits within the maximum
+-             line width.  Reset point and scan the next line.  */
+-          fs->point_col = 0;
+-          buf = nl + 1;
+-          continue;
+-        }
++      else
++	{
++	  size_t display_width = mbsnwidth (buf, nl - buf, MBSW_STOP_AT_NUL);
++	  if (display_width < (ssize_t) fs->rmargin)
++	    {
++	      /* The buffer contains a full line that fits within the maximum
++		 line width.  Reset point and scan the next line.  */
++	      fs->point_col = 0;
++	      buf = nl + 1;
++	      continue;
++	    }
++	}
+ 
+       /* This line is too long.  */
+       r = fs->rmargin - 1;
+@@ -225,7 +278,7 @@ __argp_fmtstream_update (argp_fmtstream_t fs)
+           char *p, *nextline;
+           int i;
+ 
+-          p = buf + (r + 1 - fs->point_col);
++          p = buf + add_width (buf, fs->p, (r + 1 - fs->point_col));
+           while (p >= buf && !isblank ((unsigned char) *p))
+             --p;
+           nextline = p + 1;     /* This will begin the next line.  */
+@@ -243,7 +296,7 @@ __argp_fmtstream_update (argp_fmtstream_t fs)
+             {
+               /* A single word that is greater than the maximum line width.
+                  Oh well.  Put it on an overlong line by itself.  */
+-              p = buf + (r + 1 - fs->point_col);
++              p = buf + add_width (buf, fs->p, (r + 1 - fs->point_col));
+               /* Find the end of the long word.  */
+               if (p < nl)
+                 do
+@@ -277,7 +330,8 @@ __argp_fmtstream_update (argp_fmtstream_t fs)
+               && fs->p > nextline)
+             {
+               /* The margin needs more blanks than we removed.  */
+-              if (fs->end - fs->p > fs->wmargin + 1)
++              if (mbsnwidth (fs->p, fs->end - fs->p, MBSW_STOP_AT_NUL)
++                  > fs->wmargin + 1)
+                 /* Make some space for them.  */
+                 {
+                   size_t mv = fs->p - nextline;
+diff --git a/lib/argp-help.c b/lib/argp-help.c
+index e5375a0f0..5d8f451ec 100644
+--- a/lib/argp-help.c
++++ b/lib/argp-help.c
+@@ -51,6 +51,7 @@
+ #include "argp.h"
+ #include "argp-fmtstream.h"
+ #include "argp-namefrob.h"
++#include "mbswidth.h"
+ 
+ #ifndef SIZE_MAX
+ # define SIZE_MAX ((size_t) -1)
+@@ -1432,7 +1433,7 @@ argp_args_usage (const struct argp *argp, const struct argp_state *state,
+ 
+       /* Manually do line wrapping so that it (probably) won't get wrapped at
+          any embedded spaces.  */
+-      space (stream, 1 + nl - cp);
++      space (stream, 1 + mbsnwidth (cp, nl - cp, MBSW_STOP_AT_NUL));
+ 
+       __argp_fmtstream_write (stream, cp, nl - cp);
+     }
+diff --git a/lib/mbswidth.c b/lib/mbswidth.c
+index 408a15e34..b3fb7f83a 100644
+--- a/lib/mbswidth.c
++++ b/lib/mbswidth.c
+@@ -38,6 +38,14 @@
+ /* Get INT_MAX.  */
+ #include <limits.h>
+ 
++#ifndef FALLTHROUGH
++# if __GNUC__ < 7
++#  define FALLTHROUGH ((void) 0)
++# else
++#  define FALLTHROUGH __attribute__ ((__fallthrough__))
++# endif
++#endif
++
+ /* Returns the number of columns needed to represent the multibyte
+    character string pointed to by STRING.  If a non-printable character
+    occurs, and MBSW_REJECT_UNPRINTABLE is specified, -1 is returned.
+@@ -90,6 +98,10 @@ mbsnwidth (const char *string, size_t nbytes, int flags)
+               p++;
+               width++;
+               break;
++            case '\0':
++              if (flags & MBSW_STOP_AT_NUL)
++                return width;
++              FALLTHROUGH;
+             default:
+               /* If we have a multibyte sequence, scan it up to its end.  */
+               {
+@@ -168,6 +180,9 @@ mbsnwidth (const char *string, size_t nbytes, int flags)
+     {
+       unsigned char c = (unsigned char) *p++;
+ 
++      if (c == 0 && (flags & MBSW_STOP_AT_NUL))
++        return width;
++
+       if (isprint (c))
+         {
+           if (width == INT_MAX)
+diff --git a/lib/mbswidth.h b/lib/mbswidth.h
+index 2b5c53c37..45a123e63 100644
+--- a/lib/mbswidth.h
++++ b/lib/mbswidth.h
+@@ -45,6 +45,10 @@ extern "C" {
+    control characters and 1 otherwise.  */
+ #define MBSW_REJECT_UNPRINTABLE 2
+ 
++/* If this bit is set \0 is treated as the end of string.
++   Otherwise it's treated as a normal one column width character.  */
++#define MBSW_STOP_AT_NUL 4
++
+ 
+ /* Returns the number of screen columns needed for STRING.  */
+ #define mbswidth gnu_mbswidth  /* avoid clash with UnixWare 7.1.1 function */

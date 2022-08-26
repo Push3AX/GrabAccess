@@ -1,0 +1,106 @@
+#! @BUILD_SHEBANG@
+set -e
+
+# Compares GRUB script output with BASH output.
+# Copyright (C) 2009,2010  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+# Initialize some variables.
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+datarootdir="@datarootdir@"
+builddir="@builddir@"
+PACKAGE_NAME=@PACKAGE_NAME@
+PACKAGE_TARNAME=@PACKAGE_TARNAME@
+PACKAGE_VERSION=@PACKAGE_VERSION@
+
+# Force build directory components
+PATH="${builddir}:$PATH"
+export PATH
+
+# Usage: usage
+# Print the usage.
+usage () {
+    cat <<EOF
+Usage: $0 [OPTION] [SOURCE]
+Compares GRUB script output with BASH shell output.
+
+  -h, --help              print this message and exit
+  -v, --version           print the version information and exit
+  --modules=MODULES       pre-load specified modules MODULES
+  --qemu-opts=OPTIONS     extra options to pass to Qemu instance
+
+$0 compares GRUB script output with BASH shell output and prints their
+differences.
+
+Report bugs to <bug-grub@gnu.org>.
+EOF
+}
+
+# Check the arguments.
+for option in "$@"; do
+    case "$option" in
+    -h | --help)
+	usage
+	exit 0 ;;
+    -v | --version)
+	echo "$0 (GNU GRUB ${PACKAGE_VERSION})"
+	exit 0 ;;
+    --modules=*)
+	ms=`echo "$option" | sed -e 's/--modules=//'`
+	modules="$modules,$ms" ;;
+    --qemu-opts=*)
+        qs=`echo "$option" | sed -e 's/--qemu-opts=//'`
+        qemuopts="$qemuopts $qs" ;;
+    -*)
+	echo "Unrecognized option \`$option'" 1>&2
+	usage
+	exit 1
+	;;
+    *)
+	if [ "x${source}" != x ] ; then
+	    echo "too many parameters at the end" 1>&2
+	    usage
+	    exit 1
+	fi
+	source="${option}" ;;
+    esac
+done
+
+if [ "x${source}" = x ] ; then
+  tmpfile=`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` || exit 1
+  while read REPLY; do
+    echo $REPLY >> "${tmpfile}"
+  done
+  source="${tmpfile}"
+fi
+
+outfile1=`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` || exit 1
+"@builddir@/grub-shell" --qemu-opts="${qemuopts}" --modules=${modules} "${source}" >"${outfile1}"
+
+outfile2=`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` || exit 1
+bash "${source}" >"${outfile2}"
+
+if ! diff -q "${outfile1}" "${outfile2}" >/dev/null
+then
+  echo "${source}: GRUB and BASH outputs did not match (see diff -u ${outfile1} ${outfile2})"
+  status=1
+else
+    rm -f "${outfile1}" "${outfile2}"
+fi
+
+exit $status
+
+

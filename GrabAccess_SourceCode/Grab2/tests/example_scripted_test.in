@@ -1,0 +1,4 @@
+#!@BUILD_SHEBANG@
+set -e
+
+true

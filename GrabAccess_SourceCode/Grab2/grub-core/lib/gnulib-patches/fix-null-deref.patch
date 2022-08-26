@@ -1,0 +1,13 @@
+diff --git a/lib/argp-parse.c b/lib/argp-parse.c
+index 6dec57310..900adad54 100644
+--- a/lib/argp-parse.c
++++ b/lib/argp-parse.c
+@@ -940,7 +940,7 @@ weak_alias (__argp_parse, argp_parse)
+ void *
+ __argp_input (const struct argp *argp, const struct argp_state *state)
+ {
+-  if (state)
++  if (state && state->pstate)
+     {
+       struct group *group;
+       struct parser *parser = state->pstate;

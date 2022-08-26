@@ -1,0 +1,1 @@
+acpi all_video blocklist boot cat chain configfile cpio echo efi_gop exfat ext2 extcmd fat file font gfxmenu gfxterm gfxterm_background gfxterm_menu gzio halt help iso9660 jpeg linux loadenv loopback ls lzopio minicmd newc normal ntfs part_gpt part_msdos png probe progress reboot regexp search tar terminal terminfo test tga udf video video_colors video_fb videoinfo xzio

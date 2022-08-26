@@ -1,0 +1,54 @@
+From d5bbd8f60aacb0f73ea5a0bde999152c467d0e78 Mon Sep 17 00:00:00 2001
+From: Colin Watson <cjwatson@debian.org>
+Date: Sun, 1 Mar 2020 11:57:58 +0000
+Subject: [PATCH 1/4] Support POTFILES-shell
+
+---
+ gettext-runtime/po/Makefile.in.in | 24 ++++++++++++++++++++++--
+ 1 file changed, 22 insertions(+), 2 deletions(-)
+
+diff --git a/gettext-runtime/po/Makefile.in.in b/gettext-runtime/po/Makefile.in.in
+index fabdc76c9..32e9323d3 100644
+--- a/gettext-runtime/po/Makefile.in.in
++++ b/gettext-runtime/po/Makefile.in.in
+@@ -142,7 +142,7 @@ stamp-po: $(srcdir)/$(DOMAIN).pot
+ # The determination of whether the package xyz is a GNU one is based on the
+ # heuristic whether some file in the top level directory mentions "GNU xyz".
+ # If GNU 'find' is available, we avoid grepping through monster files.
+-$(DOMAIN).pot-update: $(POTFILES) $(srcdir)/POTFILES.in remove-potcdate.sed
++$(DOMAIN).pot-update: $(POTFILES) $(srcdir)/POTFILES.in $(srcdir)/POTFILES-shell.in remove-potcdate.sed
+ 	if { if (LC_ALL=C find --version) 2>/dev/null | grep GNU >/dev/null; then \
+ 	       LC_ALL=C find -L $(top_srcdir) -maxdepth 1 -type f -size -10000000c -exec grep 'GNU @PACKAGE@' /dev/null '{}' ';' 2>/dev/null; \
+ 	     else \
+@@ -175,7 +175,27 @@ $(DOMAIN).pot-update: $(POTFILES) $(srcdir)/POTFILES.in remove-potcdate.sed
+ 	      --package-version='@VERSION@' \
+ 	      --msgid-bugs-address="$$msgid_bugs_address" \
+ 	    ;; \
+-	esac
++	esac; \
++	case `$(XGETTEXT) --version | sed 1q | sed -e 's,^[^0-9]*,,'` in \
++	  '' | 0.[0-9] | 0.[0-9].* | 0.1[0-5] | 0.1[0-5].* | 0.16 | 0.16.[0-1]*) \
++	    $(XGETTEXT) --default-domain=$(DOMAIN) --directory=$(top_srcdir) \
++	      --add-comments=TRANSLATORS: @XGETTEXT_EXTRA_OPTIONS@ \
++	      --files-from=$(srcdir)/POTFILES-shell.in \
++	      --copyright-holder='$(COPYRIGHT_HOLDER)' \
++	      --msgid-bugs-address="$$msgid_bugs_address" \
++	      --join-existing --language=Shell --keyword=gettext_quoted \
++	    ;; \
++	  *) \
++	    $(XGETTEXT) --default-domain=$(DOMAIN) --directory=$(top_srcdir) \
++	      --add-comments=TRANSLATORS: @XGETTEXT_EXTRA_OPTIONS@ \
++	      --files-from=$(srcdir)/POTFILES-shell.in \
++	      --copyright-holder='$(COPYRIGHT_HOLDER)' \
++	      --package-name="$${package_gnu}@PACKAGE@" \
++	      --package-version='@VERSION@' \
++	      --msgid-bugs-address="$$msgid_bugs_address" \
++	      --join-existing --language=Shell --keyword=gettext_quoted \
++	    ;; \
++	esac; \
+ 	test ! -f $(DOMAIN).po || { \
+ 	  if test -f $(srcdir)/$(DOMAIN).pot; then \
+ 	    sed -f remove-potcdate.sed < $(srcdir)/$(DOMAIN).pot > $(DOMAIN).1po && \
+-- 
+2.17.1
+

@@ -1,0 +1,30 @@
+#! @BUILD_SHEBANG@
+set -e
+
+. "@builddir@/grub-core/modinfo.sh"
+
+# FIXME: OpenBIOS on sparc64 doesn't implement RTC
+if [ "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" = sparc64-ieee1275 ]; then
+    exit 77
+fi
+
+pdt="$(date -u +%s)"
+dt="$(echo date | @builddir@/grub-shell)"
+dt="$(echo "$dt" | sed 's, [A-Z][a-z]*$,,')"
+dtg="$(date -u -d "$dt" +%s)"
+ndt="$(date -u +%s)"
+
+if [ $pdt -gt $dtg ] || [ $dtg -gt $ndt ]; then
+  echo "Date not in range: $pdt <= $dtg <= $ndt"
+  exit 1
+fi
+
+pdt="$(date -u +%s)"
+dt=`echo 'insmod datehook; echo $YEAR-$MONTH-$DAY $HOUR:$MINUTE:$SECOND' | @builddir@/grub-shell`
+dtg="$(date -u -d "$dt" +%s)"
+ndt="$(date -u +%s)"
+
+if [ $pdt -gt $dtg ] || [ $dtg -gt $ndt ]; then
+  echo "Date not in range: $pdt <= $dtg <= $ndt"
+  exit 1
+fi

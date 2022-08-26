@@ -1,0 +1,11 @@
+#! @BUILD_SHEBANG@
+set -e
+
+@builddir@/grub-script-check <<EOF
+echo one;
+echo one; echo two
+echo one; echo two;
+echo one ; echo two ; 
+echo one ; echo two ; echo three 
+echo one; echo two ; echo three;   
+EOF

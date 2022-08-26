@@ -1,0 +1,23 @@
+The following authors assigned copyright on their work to the Free
+Software Foundation:
+
+Yoshinori K. Okuji designed and implemented the initial version.
+
+Jeroen Dekkers added initrd support, Multiboot support, and fixed bugs
+in ext2fs.
+
+Marco Gerards added ext2fs support, grub-emu, a new command-line
+engine, and fixed many bugs.
+
+Omniflux added terminfo and serial support.
+
+Vincent Pelletier added Sparc64 support.
+
+Hollis Blanchard implemented many parts of PowerPC support.
+
+Tomas Ebenlendr added the command chainloader into the normal mode,
+fixed some bugs.
+
+Guillem Jover merged architecture-independent ELF support code.
+
+Vesa Jaaskelainen added VBE support.

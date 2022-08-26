@@ -1,0 +1,21 @@
+#! @BUILD_SHEBANG@
+set -e
+
+. "@builddir@/grub-core/modinfo.sh"
+
+case "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" in
+    # PLATFORM: Max RAM is 256M
+    mips-qemu_mips | mipsel-qemu_mips)
+	mem=256M;;
+    *)
+	mem=512M;;
+esac
+
+# Increase memory as some of tests are high-resolution and need a lot of memory.
+out=`echo all_functional_test | @builddir@/grub-shell --timeout=3600 --files="/boot/grub/fonts/unicode.pf2"="@builddir@/"unicode.pf2 --qemu-opts="-m $mem"`
+
+if [ "$(echo "$out" | tail -n 1)" != "ALL TESTS PASSED" ]; then
+  echo "Functional test failure: $out"
+  exit 1
+fi
+

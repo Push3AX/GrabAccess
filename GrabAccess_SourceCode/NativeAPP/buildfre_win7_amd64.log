@@ -1,0 +1,5 @@
+BUILD: Examining c:\users\administrator\desktop\grabaccess\grabaccess_sourcecode_v1.0.0\windowsnativeapp directory for files to compile.
+oacr invalidate root:amd64fre /autocleanqueue
+1>Compiling and Linking c:\users\administrator\desktop\grabaccess\grabaccess_sourcecode_v1.0.0\windowsnativeapp *************
+1>'nmake.exe /nologo BUILDMSG=Stop. -i /nologo /f c:\winddk\7600.16385.1\bin\makefile.def BUILD_PASS=PASS2 LINKONLY=1 NOPASS0=1 MAKEDIR_RELATIVE_TO_BASEDIR='
+1>c:\users\administrator\desktop\grabaccess\grabaccess_sourcecode_v1.0.0\windowsnativeapp: TARGETPATH is obj

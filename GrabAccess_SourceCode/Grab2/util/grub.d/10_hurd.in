@@ -1,0 +1,232 @@
+#! /bin/sh
+set -e
+
+# grub-mkconfig helper script.
+# Copyright (C) 2006,2007,2008,2009,2010  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+datarootdir="@datarootdir@"
+
+export TEXTDOMAIN=@PACKAGE@
+export TEXTDOMAINDIR="@localedir@"
+
+. "$pkgdatadir/grub-mkconfig_lib"
+
+CLASS="--class gnu --class os"
+
+if [ "x${GRUB_DISTRIBUTOR}" = "x" ] ; then
+  OS=GNU
+else
+  OS="${GRUB_DISTRIBUTOR} GNU/Hurd"
+  CLASS="--class $(echo ${GRUB_DISTRIBUTOR} | tr 'A-Z' 'a-z' | cut -d' ' -f1|LC_ALL=C sed 's,[^[:alnum:]_],_,g') ${CLASS}"
+fi
+
+at_least_one=false
+all_of_them=true
+
+# FIXME: add l4 here?
+kernel=
+for i in /boot/gnumach* ; do
+  if test -e $i ; then
+    basename=`basename $i`
+    dirname=`dirname $i`
+    rel_dirname=`make_system_path_relative_to_its_root $dirname`
+    gettext_printf "Found GNU Mach: %s" "$i" >&2
+    echo >&2
+    kernels="${kernels} ${rel_dirname}/${basename}"
+    at_least_one=true
+  fi
+done
+
+# FIXME: This works for ext2.  For other filesystems we might need special-casing
+case "${GRUB_FS}" in
+  *fs)	hurd_fs="${GRUB_FS}" ;;
+  *)	hurd_fs="${GRUB_FS}fs" ;;
+esac
+
+for i in /hurd/${hurd_fs}.static /hurd/exec ; do
+  if test -e "$i" ; then
+    gettext_printf "Found Hurd module: %s" "$i" >&2
+    echo >&2
+    at_least_one=true
+  else
+    all_of_them=false
+  fi
+done
+
+if test -e '/hurd/pci-arbiter.static' ; then
+  pci_arbiter=true
+else
+  pci_arbiter=false
+fi
+
+if test -e '/hurd/rumpdisk.static' ; then
+  rumpdisk=true
+else
+  rumpdisk=false
+fi
+
+if ${at_least_one} ; then : ; else
+  # no hurd here, aborting silently
+  exit 0
+fi
+
+if ${all_of_them} && test -e /lib/ld.so.1 ; then : ; else
+  gettext "Some Hurd stuff found, but not enough to boot." >&2
+  echo >&2
+  exit 1
+fi
+
+title_correction_code=
+
+hurd_entry () {
+  kernel="$1"
+  type="$2"
+  kernel_base="`basename "${kernel}"`"
+
+  if [ x$type != xsimple ] ; then
+      if [ x$type = xrecovery ] ; then
+	  title="$(gettext_printf "%s, with Hurd %s (recovery mode)" "${OS}" "${kernel_base}")"
+	  oldtitle="$OS using $kernel_base (recovery mode)"
+      else
+	  title="$(gettext_printf "%s, with Hurd %s" "${OS}" "${kernel_base}")"
+	  oldtitle="$OS using $kernel_base"
+      fi
+      if [ x"$oldtitle" = x"$GRUB_ACTUAL_DEFAULT" ]; then
+	  quoted="$(echo "$GRUB_ACTUAL_DEFAULT" | grub_quote)"
+	  title_correction_code="${title_correction_code}if [ \"x\$default\" = '$quoted' ]; then default='$(echo "$replacement_title" | grub_quote)'; fi;"
+	  grub_warn "$(gettext_printf "Please don't use old title \`%s' for GRUB_DEFAULT, use \`%s' (for versions before 2.00) or \`%s' (for 2.00 or later)" "$GRUB_ACTUAL_DEFAULT" "$replacement_title" "gnuhurd-advanced-$boot_device_id>'gnuhurd-$kernel-$type-$(grub_get_device_id "${GRUB_DEVICE_BOOT}")'")"
+      fi
+      sed "s/^/$submenu_indentation/" << EOF
+menuentry '$(echo "$title" | grub_quote)' ${CLASS} \$menuentry_id_option 'gnuhurd-$kernel-$type-$(grub_get_device_id "${GRUB_DEVICE_BOOT}")' {
+EOF
+  else
+      sed "s/^/$submenu_indentation/" << EOF
+menuentry '$(echo "$OS" | grub_quote)' ${CLASS} \$menuentry_id_option 'gnuhurd-simple-$(grub_get_device_id "${GRUB_DEVICE_BOOT}")' {
+EOF
+  fi
+
+  prepare_grub_to_access_device "${GRUB_DEVICE_BOOT}" | grub_add_tab|sed "s/^/$submenu_indentation/"
+  message="$(gettext_printf "Loading GNU Mach ...")"
+
+  if [ x$type = xrecovery ] ; then
+      opts="-s"
+  else
+      opts=
+  fi
+  sed "s/^/$submenu_indentation/" << EOF
+	echo		'$(echo "$message" | grub_quote)'
+	multiboot	${kernel} root=device:${GRUB_DEVICE#/dev/} $opts ${GRUB_CMDLINE_GNUMACH}
+EOF
+
+  if [ x$type != xrecovery ] ; then
+      save_default_entry | grub_add_tab| sed "s/^/$submenu_indentation/"
+  fi
+  prepare_grub_to_access_device "${GRUB_DEVICE}" | grub_add_tab| sed "s/^/$submenu_indentation/"
+  message="$(gettext_printf "Loading the Hurd ...")"
+  if [ x$type = xrecovery ] ; then
+      opts=
+  else
+      opts="--readonly"
+  fi
+
+  host_ports="--host-priv-port='\${host-port}' --device-master-port='\${device-port}'"
+  resume_task="'\$(task-resume)'"
+
+  sed "s/^/$submenu_indentation/" << EOF
+	echo		'$(echo "$message" | grub_quote)'
+EOF
+
+  if [ "$pci_arbiter" = true ] ; then
+    if [ "$rumpdisk" = true ] ; then
+      next_task='${disk-task}'
+    else
+      next_task='${fs-task}'
+    fi
+    sed "s/^/$submenu_indentation/" << EOF
+	module          /hurd/pci-arbiter.static pci-arbiter \\
+			$host_ports \\
+			--next-task='$next_task' \\
+			'\$(pci-task=task-create)' $resume_task
+EOF
+    host_ports=""
+    resume_task=""
+  fi
+
+  if [ "$rumpdisk" = true ] ; then
+    sed "s/^/$submenu_indentation/" << EOF
+	module          /hurd/rumpdisk.static rumpdisk \\
+			$host_ports \\
+			--next-task='\${fs-task}' \\
+			'\$(disk-task=task-create)' $resume_task
+EOF
+    host_ports=""
+    resume_task=""
+  fi
+
+  sed "s/^/$submenu_indentation/" << EOF
+	module		/hurd/${hurd_fs}.static ${hurd_fs} $opts \\
+			--multiboot-command-line='\${kernel-command-line}' \\
+			$host_ports \\
+			--exec-server-task='\${exec-task}' -T typed '\${root}' \\
+			'\$(fs-task=task-create)' $resume_task
+	module		/lib/ld.so.1 exec /hurd/exec '\$(exec-task=task-create)'
+}
+EOF
+
+}
+
+title_correction_code=
+
+# Extra indentation to add to menu entries in a submenu. We're not in a submenu
+# yet, so it's empty. In a submenu it will be equal to '\t' (one tab).
+submenu_indentation=""
+is_top_level=true
+
+while [ "x$kernels" != "x" ] ; do
+  kernel=`version_find_latest $kernels`
+
+  # The GRUB_DISABLE_SUBMENU option used to be different than others since it was
+  # mentioned in the documentation that has to be set to 'y' instead of 'true' to
+  # enable it. This caused a lot of confusion to users that set the option to 'y',
+  # 'yes' or 'true'. This was fixed but all of these values must be supported now.
+  if [ "x${GRUB_DISABLE_SUBMENU}" = xyes ] || [ "x${GRUB_DISABLE_SUBMENU}" = xy ]; then
+      GRUB_DISABLE_SUBMENU="true"
+  fi
+
+  if [ "x$is_top_level" = xtrue ] && [ "x${GRUB_DISABLE_SUBMENU}" != xtrue ]; then
+      hurd_entry "$kernel" simple
+      submenu_indentation="$grub_tab"
+    
+      # TRANSLATORS: %s is replaced with an OS name
+      echo "submenu '$(gettext_printf "Advanced options for %s" "${OS}" | grub_quote)' \$menuentry_id_option 'gnuhurd-advanced-$(grub_get_device_id "${GRUB_DEVICE_BOOT}")' {"
+      is_top_level=false
+  fi
+
+  hurd_entry "$kernel" advanced
+  hurd_entry "$kernel" recovery
+
+  kernels=`echo $kernels | tr ' ' '\n' | fgrep -vx "$kernel" | tr '\n' ' '`
+done
+
+# If at least one kernel was found, then we need to
+# add a closing '}' for the submenu command.
+if [ x"$is_top_level" != xtrue ]; then
+  echo '}'
+fi
+
+echo "$title_correction_code"

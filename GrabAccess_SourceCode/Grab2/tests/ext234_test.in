@@ -1,0 +1,33 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+if [ "x$EUID" = "x" ] ; then
+  EUID=`id -u`
+fi
+
+if [ "$EUID" != 0 ] ; then
+   exit 99
+fi
+
+if ! which mkfs.ext2 >/dev/null 2>&1; then
+   echo "mkfs.ext2 not installed; cannot test ext2."
+   exit 99
+fi
+
+if ! which mkfs.ext3 >/dev/null 2>&1; then
+   echo "mkfs.ext3 not installed; cannot test ext3."
+   exit 99
+fi
+
+if ! which mkfs.ext4 >/dev/null 2>&1; then
+   echo "mkfs.ext4 not installed; cannot test ext4."
+   exit 99
+fi
+
+"@builddir@/grub-fs-tester" ext2_old
+"@builddir@/grub-fs-tester" ext2
+"@builddir@/grub-fs-tester" ext3
+"@builddir@/grub-fs-tester" ext4
+"@builddir@/grub-fs-tester" ext4_metabg
+"@builddir@/grub-fs-tester" ext4_encrypt

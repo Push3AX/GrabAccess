@@ -1,0 +1,32 @@
+#! @builddir@/grub-shell-tester
+
+echo one
+foo=""
+while test "$foo" != "1111"; do foo="${foo}1"; echo "$foo"; done
+
+echo two
+foo=""
+while test "$foo" != "aaaa"
+do
+  foo="${foo}a"
+  echo $foo
+done
+
+foo=""
+until test "$foo" = "1111"; do foo="${foo}1"; echo $foo; done
+foo=""
+until test "$foo" = "aaaa"
+do
+  foo="${foo}a"
+  echo $foo
+done
+
+# check "$?" in condition gets its value from while body commands
+foo=""
+false
+while test "$?" != "0"
+do
+    echo $foo
+    foo="${foo}1"
+    test "$foo" = "111111"
+done

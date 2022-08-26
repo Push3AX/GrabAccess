@@ -1,0 +1,139 @@
+# -*- makefile -*-
+
+CFLAGS_PLATFORM=
+
+export LC_COLLATE := C
+unexport LC_ALL
+
+# Platform specific options
+if COND_sparc64_ieee1275
+  LDFLAGS_PLATFORM = -Wl,-melf64_sparc
+endif
+if COND_arm
+if !COND_emu
+  LDFLAGS_PLATFORM = -Wl,--wrap=__clear_cache
+endif
+endif
+if COND_arm64
+  CFLAGS_PLATFORM += -mcmodel=large
+endif
+if COND_powerpc_ieee1275
+  CFLAGS_PLATFORM += -mcpu=powerpc
+endif
+
+# Other options
+
+CPPFLAGS_DEFAULT = -DGRUB_FILE=\"$(subst $(srcdir)/,,$<)\"
+CPPFLAGS_DEFAULT += -I$(builddir)
+CPPFLAGS_DEFAULT += -I$(srcdir)
+CPPFLAGS_DEFAULT += -I$(top_builddir)
+CPPFLAGS_DEFAULT += -I$(top_srcdir)
+CPPFLAGS_DEFAULT += -I$(top_srcdir)/include
+CPPFLAGS_DEFAULT += -I$(top_builddir)/include
+CPPFLAGS_DEFAULT += -I$(top_srcdir)/grub-core/lib/libgcrypt-grub/src/
+CCASFLAGS_DEFAULT = $(CPPFLAGS_DEFAULT) -DASM_FILE=1
+BUILD_CPPFLAGS += $(CPPFLAGS_DEFAULT)
+
+CFLAGS_KERNEL = $(CFLAGS_PLATFORM) -ffreestanding
+LDFLAGS_KERNEL = $(LDFLAGS_PLATFORM) -nostdlib $(TARGET_LDFLAGS_OLDMAGIC)
+CPPFLAGS_KERNEL = $(CPPFLAGS_CPU) $(CPPFLAGS_PLATFORM) -DGRUB_KERNEL=1
+CCASFLAGS_KERNEL = $(CCASFLAGS_CPU) $(CCASFLAGS_PLATFORM)
+STRIPFLAGS_KERNEL = -R .eh_frame -R .rel.dyn -R .reginfo -R .note -R .comment -R .drectve -R .note.gnu.gold-version -R .MIPS.abiflags -R .ARM.exidx -R .note.gnu.property -R .gnu.build.attributes
+
+CFLAGS_MODULE = $(CFLAGS_PLATFORM) -ffreestanding
+LDFLAGS_MODULE = $(LDFLAGS_PLATFORM) -nostdlib $(TARGET_LDFLAGS_OLDMAGIC) -Wl,-r
+CPPFLAGS_MODULE = $(CPPFLAGS_CPU) $(CPPFLAGS_PLATFORM)
+CCASFLAGS_MODULE = $(CCASFLAGS_CPU) $(CCASFLAGS_PLATFORM)
+
+CFLAGS_IMAGE = $(CFLAGS_PLATFORM) -fno-builtin
+LDFLAGS_IMAGE = $(LDFLAGS_PLATFORM) -nostdlib $(TARGET_LDFLAGS_OLDMAGIC) -Wl,-S
+CPPFLAGS_IMAGE = $(CPPFLAGS_CPU) $(CPPFLAGS_PLATFORM)
+CCASFLAGS_IMAGE = $(CCASFLAGS_CPU) $(CCASFLAGS_PLATFORM)
+
+CFLAGS_PROGRAM =
+LDFLAGS_PROGRAM =
+CPPFLAGS_PROGRAM =
+CCASFLAGS_PROGRAM =
+
+CFLAGS_LIBRARY =
+CPPFLAGS_LIBRARY =
+CCASFLAGS_LIBRARY =
+
+# Other variables
+
+grubconfdir = $(sysconfdir)/grub.d
+platformdir = $(pkglibdir)/$(target_cpu)-$(platform)
+starfielddir = $(pkgdatadir)/themes/starfield
+
+CFLAGS_GNULIB = -Wno-undef -Wno-sign-compare -Wno-unused -Wno-unused-parameter -Wno-redundant-decls -Wno-unreachable-code -Wno-conversion
+CPPFLAGS_GNULIB = -I$(top_builddir)/grub-core/lib/gnulib -I$(top_srcdir)/grub-core/lib/gnulib
+
+CFLAGS_POSIX = -fno-builtin
+CPPFLAGS_POSIX = -I$(top_srcdir)/grub-core/lib/posix_wrap
+
+CFLAGS_GCRY = -Wno-error -Wno-missing-field-initializers -Wno-redundant-decls -Wno-undef $(CFLAGS_POSIX)
+CPPFLAGS_GCRY = -I$(top_srcdir)/grub-core/lib/libgcrypt_wrap $(CPPFLAGS_POSIX) -D_GCRYPT_IN_LIBGCRYPT=1 -I$(top_srcdir)/include/grub/gcrypt
+
+CPPFLAGS_EFIEMU = -I$(top_srcdir)/grub-core/efiemu/runtime
+
+# List file macros for recognizing /interesting/ modules
+CPPFLAGS_FS_LIST = -Dgrub_fs_register=FS_LIST_MARKER
+CPPFLAGS_VIDEO_LIST= -Dgrub_video_register=VIDEO_LIST_MARKER
+CPPFLAGS_PARTMAP_LIST = -Dgrub_partition_map_register=PARTMAP_LIST_MARKER
+CPPFLAGS_PARTTOOL_LIST = -Dgrub_parttool_register=PARTTOOL_LIST_MARKER
+CPPFLAGS_TERMINAL_LIST = '-Dgrub_term_register_input(...)=INPUT_TERMINAL_LIST_MARKER(__VA_ARGS__)'
+CPPFLAGS_TERMINAL_LIST += '-Dgrub_term_register_output(...)=OUTPUT_TERMINAL_LIST_MARKER(__VA_ARGS__)'
+CPPFLAGS_COMMAND_LIST = '-Dgrub_register_command(...)=COMMAND_LIST_MARKER(__VA_ARGS__)'
+CPPFLAGS_COMMAND_LIST += '-Dgrub_register_extcmd(...)=EXTCOMMAND_LIST_MARKER(__VA_ARGS__)'
+CPPFLAGS_COMMAND_LIST += '-Dgrub_register_command_p1(...)=P1COMMAND_LIST_MARKER(__VA_ARGS__)'
+CPPFLAGS_FDT_LIST := '-Dgrub_fdtbus_register(...)=FDT_DRIVER_LIST_MARKER(__VA_ARGS__)'
+CPPFLAGS_MARKER = $(CPPFLAGS_FS_LIST) $(CPPFLAGS_VIDEO_LIST) \
+	$(CPPFLAGS_PARTTOOL_LIST) $(CPPFLAGS_PARTMAP_LIST) \
+	$(CPPFLAGS_TERMINAL_LIST) $(CPPFLAGS_COMMAND_LIST) \
+	$(CPPFLAGS_FDT_LIST)
+
+# Define these variables to calm down automake
+
+IMG_FILES =
+MOD_FILES =
+MODULE_FILES =
+MARKER_FILES =
+KERNEL_HEADER_FILES =
+
+bin_SCRIPTS =
+bin_PROGRAMS =
+check_SCRIPTS_native =
+check_SCRIPTS_nonnative =
+check_PROGRAMS_native =
+check_PROGRAMS_nonnative =
+dist_grubconf_DATA =
+dist_noinst_DATA =
+grubconf_SCRIPTS =
+man_MANS =
+noinst_DATA =
+noinst_SCRIPTS =
+noinst_PROGRAMS =
+noinst_LIBRARIES =
+pkgdata_DATA =
+platform_DATA =
+platform_SCRIPTS =
+platform_PROGRAMS =
+sbin_SCRIPTS =
+sbin_PROGRAMS =
+
+EXTRA_DIST =
+CLEANFILES =
+BUILT_SOURCES =
+
+# Rules for Automake input
+
+.PRECIOUS: $(top_srcdir)/Makefile.util.am
+$(top_srcdir)/Makefile.util.am: $(top_srcdir)/gentpl.py $(top_srcdir)/Makefile.util.def $(top_srcdir)/Makefile.utilgcry.def
+	$(PYTHON) $^ > $@.new || (rm -f $@.new; exit 1)
+	mv $@.new $@
+
+.PRECIOUS: $(top_srcdir)/grub-core/Makefile.core.am
+$(top_srcdir)/grub-core/Makefile.core.am: $(top_srcdir)/gentpl.py $(top_srcdir)/grub-core/Makefile.core.def $(top_srcdir)/grub-core/Makefile.gcry.def
+	if [ "x$$GRUB_CONTRIB" != x ]; then echo "You need to run ./bootstrap manually." >&2; exit 1; fi
+	$(PYTHON) $^ > $@.new || (rm -f $@.new; exit 1)
+	mv $@.new $@

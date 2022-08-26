@@ -1,0 +1,85 @@
+#! @builddir@/grub-shell-tester
+
+# Run GRUB script in a Qemu instance
+# Copyright (C) 2010  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+function f1 {
+  echo f1 '$@' $@
+  echo f1 '$*' $*
+  echo f1 $# $1 $2 $3
+  shift
+  echo f1 '$@' $@
+  echo f1 '$*' $*
+  echo f1 $# $1 $2 $3
+}
+
+f1
+f1 a
+f1 a b
+f1 a b c
+f1 a b c d
+f1 a b c d e
+
+function f2 {
+  echo f1 '$@' $@
+  echo f1 '$*' $*
+  echo f2 $# $1 $2 $3
+  shift 1
+  echo f1 '$@' $@
+  echo f1 '$*' $*
+  echo f2 $# $1 $2 $3
+}
+
+f2
+f2 a
+f2 a b
+f2 a b c
+f2 a b c d
+f2 a b c d e
+
+function f3 {
+  echo f1 '$@' $@
+  echo f1 '$*' $*
+  echo f3 $# $1 $2 $3
+  shift 3
+  echo f1 '$@' $@
+  echo f1 '$*' $*
+  echo f3 $# $1 $2 $3
+}
+
+f3
+f3 a
+f3 a b
+f3 a b c
+f3 a b c d
+f3 a b c d e
+
+function f4 {
+  echo f1 '$@' $@
+  echo f1 '$*' $*
+  echo f4 $# $1 $2 $3
+  shift 100
+  echo f1 '$@' $@
+  echo f1 '$*' $*
+  echo f4 $# $1 $2 $3
+}
+
+f4
+f4 a
+f4 a b
+f4 a b c
+f4 a b c d
+f4 a b c d e

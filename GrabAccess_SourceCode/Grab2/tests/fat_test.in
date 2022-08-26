@@ -1,0 +1,22 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+if [ "x$EUID" = "x" ] ; then
+  EUID=`id -u`
+fi
+
+if [ "$EUID" != 0 ] ; then
+   exit 99
+fi
+
+if ! which mkfs.vfat >/dev/null 2>&1; then
+   echo "mkfs.vfat not installed; cannot test FAT."
+   exit 99
+fi
+
+"@builddir@/grub-fs-tester" vfat16a
+"@builddir@/grub-fs-tester" vfat12a
+"@builddir@/grub-fs-tester" vfat12
+"@builddir@/grub-fs-tester" vfat16
+"@builddir@/grub-fs-tester" vfat32

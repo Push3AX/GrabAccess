@@ -1,0 +1,23 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+if [ "x$EUID" = "x" ] ; then
+  EUID=`id -u`
+fi
+
+if [ "$EUID" != 0 ] ; then
+   exit 99
+fi
+
+if ! which mkfs.hfs >/dev/null 2>&1; then
+   echo "mkfs.hfs not installed; cannot test HFS."
+   exit 99
+fi
+
+if ! grep -q mac_roman /proc/modules && ! modprobe mac_roman; then
+   echo "no mac-roman support; cannot test HFS."
+   exit 99
+fi
+
+"@builddir@/grub-fs-tester" hfs

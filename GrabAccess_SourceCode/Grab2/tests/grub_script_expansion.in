@@ -1,0 +1,44 @@
+#! @BUILD_SHEBANG@
+set -e
+
+# Run GRUB script in a Qemu instance
+# Copyright (C) 2010  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+disks=`echo ls | @builddir@/grub-shell`
+disks=`echo "$disks"| grep -av '^Network protocols:$'| grep -av '^tftp http $'`
+other=`echo insmod regexp\; echo \* | @builddir@/grub-shell`
+for d in $disks; do
+    if echo "$d" |grep ',' >/dev/null; then
+	if echo "$other" | grep -F -- "$d" >/dev/null; then
+	    echo "$d should not occur in * expansion" >&2
+	    exit 1
+	fi
+    else
+	if ! echo "$other" | grep -F -- "$d" >/dev/null; then
+	    echo "$d missing from * expansion" >&2
+	    exit 1
+	fi
+    fi
+done
+
+other=`echo insmod regexp\; echo '(*)' | @builddir@/grub-shell`
+for d in $disks; do
+    if ! echo "$other" | grep -F -- "$d" >/dev/null; then
+	echo "$d missing from (*) expansion" >&2
+	exit 1
+    fi
+done
+

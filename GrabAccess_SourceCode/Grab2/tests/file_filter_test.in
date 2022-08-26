@@ -1,0 +1,76 @@
+#! @BUILD_SHEBANG@
+# Copyright (C) 2014  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+set -e
+grubshell=@builddir@/grub-shell
+
+. "@builddir@/grub-core/modinfo.sh"
+
+filters="gzio xzio lzopio pgp"
+modules="cat mpi"
+
+for mod in $(cut -d ' ' -f 2 "@builddir@/grub-core/crypto.lst"  | sort -u); do
+    modules="$modules $mod"
+done
+
+for file in file.gz file.xz file.lzop file.gz.sig file.xz.sig file.lzop.sig keys.pub; do
+    files="$files /$file=@srcdir@/tests/file_filter/$file"
+done
+
+# GRUB cat command adds extra newline after file
+result="Hello, user!
+
+Hello, user!
+
+Hello, user!"
+
+out="$("${grubshell}" --modules="$modules $filters" --files="$files" "@srcdir@/tests/file_filter/test.cfg")"
+if [ "$out" != "$result" ]; then
+   echo LOCAL FAIL
+   echo "$out"
+   exit 1
+fi
+
+# Taken from netboot_test
+case "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" in
+    # PLATFORM: emu is different
+    *-emu)
+	exit 0;;
+    # PLATFORM: Flash targets
+    i386-qemu | i386-coreboot | mips-qemu_mips | mipsel-qemu_mips)
+	exit 0;;
+    # FIXME: currently grub-shell uses only -kernel for loongson
+    mipsel-loongson)
+	exit 0;;
+    # FIXME: no rtl8139 support
+    i386-multiboot)
+	exit 0;;
+    # FIXME: We don't fully support netboot on ARC
+    *-arc)
+	exit 0;;
+    # FIXME: Many QEMU firmware have no netboot capability
+    *-efi | i386-ieee1275 | powerpc-ieee1275 | sparc64-ieee1275)
+	exit 0;;
+esac
+
+out="$("${grubshell}" --boot=net --modules="$modules $filters" --files="$files" "@srcdir@/tests/file_filter/test.cfg")"
+if [ "$out" != "$result" ]; then
+   echo NET FAIL
+   echo "$out"
+   exit 1
+fi
+
+exit 0

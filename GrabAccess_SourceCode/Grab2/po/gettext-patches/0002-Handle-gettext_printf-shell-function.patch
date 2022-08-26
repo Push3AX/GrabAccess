@@ -1,0 +1,46 @@
+From fd17c51f2e6c87427679fbdfb5f6224ff48795db Mon Sep 17 00:00:00 2001
+From: Colin Watson <cjwatson@debian.org>
+Date: Sun, 1 Mar 2020 12:00:41 +0000
+Subject: [PATCH 2/4] Handle gettext_printf shell function
+
+Extract gettext_printf arguments.
+
+Run grub.d.sed over strings extracted from util/grub.d/, in order to set
+c-format flags (xgettext refuses to include these itself for strings it
+extracted from a shell file, but these really are c-format).
+---
+ gettext-runtime/po/Makefile.in.in | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/gettext-runtime/po/Makefile.in.in b/gettext-runtime/po/Makefile.in.in
+index 32e9323d3..32e0c99a2 100644
+--- a/gettext-runtime/po/Makefile.in.in
++++ b/gettext-runtime/po/Makefile.in.in
+@@ -183,7 +183,8 @@ $(DOMAIN).pot-update: $(POTFILES) $(srcdir)/POTFILES.in $(srcdir)/POTFILES-shell
+ 	      --files-from=$(srcdir)/POTFILES-shell.in \
+ 	      --copyright-holder='$(COPYRIGHT_HOLDER)' \
+ 	      --msgid-bugs-address="$$msgid_bugs_address" \
+-	      --join-existing --language=Shell --keyword=gettext_quoted \
++	      --join-existing --language=Shell \
++	      --keyword=gettext_quoted --keyword=gettext_printf \
+ 	    ;; \
+ 	  *) \
+ 	    $(XGETTEXT) --default-domain=$(DOMAIN) --directory=$(top_srcdir) \
+@@ -193,10 +194,13 @@ $(DOMAIN).pot-update: $(POTFILES) $(srcdir)/POTFILES.in $(srcdir)/POTFILES-shell
+ 	      --package-name="$${package_gnu}@PACKAGE@" \
+ 	      --package-version='@VERSION@' \
+ 	      --msgid-bugs-address="$$msgid_bugs_address" \
+-	      --join-existing --language=Shell --keyword=gettext_quoted \
++	      --join-existing --language=Shell \
++	      --keyword=gettext_quoted --keyword=gettext_printf \
+ 	    ;; \
+ 	esac; \
+ 	test ! -f $(DOMAIN).po || { \
++	  sed -f grub.d.sed < $(DOMAIN).po > $(DOMAIN).1po && \
++	  mv $(DOMAIN).1po $(DOMAIN).po; \
+ 	  if test -f $(srcdir)/$(DOMAIN).pot; then \
+ 	    sed -f remove-potcdate.sed < $(srcdir)/$(DOMAIN).pot > $(DOMAIN).1po && \
+ 	    sed -f remove-potcdate.sed < $(DOMAIN).po > $(DOMAIN).2po && \
+-- 
+2.17.1
+

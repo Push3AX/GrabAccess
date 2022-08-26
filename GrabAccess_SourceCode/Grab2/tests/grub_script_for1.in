@@ -1,0 +1,27 @@
+#! @builddir@/grub-shell-tester
+
+for x in one two 'three 3' "four 4" five six-6; do echo $x; done
+
+for x in one two 'three 3' "four 4" five six-6
+do
+	echo $x
+done
+
+foo="1 2"
+for x in ab${foo}cd; do echo $x; done
+for x in "ab${foo}cd"; do echo $x; done
+
+a="one two three"
+y=foo
+echo $y
+for y in $a; do
+    echo $y
+done
+echo $y
+
+
+b="one two three"
+for z in $b; do
+    echo $z
+done
+echo $z

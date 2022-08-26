@@ -1,0 +1,14 @@
+--- a/lib/regexec.c	2020-10-21 14:25:35.310195912 +0000
++++ b/lib/regexec.c	2020-10-21 14:32:07.961765604 +0000
+@@ -828,7 +828,11 @@
+ 		    break;
+ 		  if (__glibc_unlikely (err != REG_NOMATCH))
+ 		    goto free_return;
++#ifdef DEBUG
++		  /* Only used for assertion below when DEBUG is set, otherwise
++		     it will be over-written when we loop around.  */
+ 		  match_last = -1;
++#endif
+ 		}
+ 	      else
+ 		break; /* We found a match.  */

@@ -1,0 +1,25 @@
+#! @BUILD_SHEBANG@
+set -e
+
+. "@builddir@/grub-core/modinfo.sh"
+
+# FIXME: OpenBIOS on sparc64 doesn't implement RTC
+if [ "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" = sparc64-ieee1275 ]; then
+    exit 77
+fi
+
+# Compare RTC with interval timer.
+# Not 100% proper but should check that timer is running ok
+dt=`echo 'date; sleep 10; date' | @builddir@/grub-shell`
+dt1="$(date -u -d "$(echo "$dt" | head -n 1 | sed 's, [A-Z][a-z]*$,,')" +%s)"
+dt2="$(date -u -d "$(echo "$dt" | tail -n 1 | sed 's, [A-Z][a-z]*$,,')" +%s)"
+
+# Ignore QEMU bug
+if [ "${grub_modinfo_target_cpu}" = arm ] && [ $((dt2 - dt1)) -ge 15 ] && [ $((dt2 - dt1)) -le 17 ]; then
+  exit 0;
+fi
+
+if [ $((dt2 - dt1)) -gt 11 ] || [ $((dt2 - dt1)) -lt 9 ]; then
+  echo "Interval not in range $dt2-$dt1 != 10"
+  exit 1
+fi

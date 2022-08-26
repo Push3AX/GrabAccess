@@ -1,0 +1,88 @@
+#!/bin/sh
+set -e
+
+# Evaluate new-kernel-pkg's configuration file.
+# Copyright (C) 2016 Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+PACKAGE_NAME=@PACKAGE_NAME@
+PACKAGE_VERSION=@PACKAGE_VERSION@
+datadir="@datadir@"
+if [ "x$pkgdatadir" = x ]; then
+    pkgdatadir="${datadir}/@PACKAGE@"
+fi
+
+self=`basename $0`
+
+export TEXTDOMAIN=@PACKAGE@
+export TEXTDOMAINDIR="@localedir@"
+
+. "${pkgdatadir}/grub-mkconfig_lib"
+
+# Usage: usage
+# Print the usage.
+usage () {
+    gettext_printf "Usage: %s [OPTION]\n" "$self"
+    gettext "Evaluate new-kernel-pkg configuration"; echo
+    echo
+    print_option_help "-h, --help" "$(gettext "print this message and exit")"
+    print_option_help "-v, --version" "$(gettext "print the version information and exit")"
+    echo
+}
+
+# Check the arguments.
+while test $# -gt 0
+do
+    option=$1
+    shift
+
+    case "$option" in
+    -h | --help)
+	usage
+	exit 0 ;;
+    -v | --version)
+	echo "$self (${PACKAGE_NAME}) ${PACKAGE_VERSION}"
+	exit 0 ;;
+    -*)
+	gettext_printf "Unrecognized option \`%s'\n" "$option" 1>&2
+	usage
+	exit 1
+	;;
+    # Explicitly ignore non-option arguments, for compatibility.
+    esac
+done
+
+if test -f /etc/sysconfig/kernel ; then
+    . /etc/sysconfig/kernel
+fi
+
+if [ "$MAKEDEBUG" = "yes" ]; then
+    echo GRUB_LINUX_MAKE_DEBUG=true
+    echo export GRUB_LINUX_MAKE_DEBUG
+    echo GRUB_CMDLINE_LINUX_DEBUG=\"systemd.log_level=debug systemd.log_target=kmsg\"
+    echo export GRUB_CMDLINE_LINUX_DEBUG
+    echo GRUB_LINUX_DEBUG_TITLE_POSTFIX=\" with debugging\"
+    echo export GRUB_LINUX_DEBUG_TITLE_POSTFIX
+fi
+if [ "$DEFAULTDEBUG" = "yes" ]; then
+    echo GRUB_DEFAULT_TO_DEBUG=true
+else
+    echo GRUB_DEFAULT_TO_DEBUG=false
+fi
+echo export GRUB_DEFAULT_TO_DEBUG
+if [ "$UPDATEDEFAULT" = "yes" ]; then
+    echo GRUB_UPDATE_DEFAULT_KERNEL=true
+    echo export GRUB_UPDATE_DEFAULT_KERNEL
+fi

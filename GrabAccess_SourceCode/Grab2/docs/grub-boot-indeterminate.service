@@ -1,0 +1,11 @@
+[Unit]
+Description=Mark boot as indeterminate
+DefaultDependencies=false
+Requires=sysinit.target
+After=sysinit.target
+Wants=system-update-pre.target
+Before=system-update-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/grub2-editenv - incr boot_indeterminate

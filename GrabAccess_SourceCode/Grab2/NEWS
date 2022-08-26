@@ -1,0 +1,735 @@
+New in 2.06:
+
+* GCC 10 support.
+* clang 10 support.
+* SBAT support.
+* LUKS2 support.
+* Drop small MBR gap support.
+* Xen Security Modules (XSM/FLASK) support.
+* The lockdown mechanism similar to the Linux kernel one.
+* Disable the os-prober by default.
+* Many backports of GRUB distros specific patches.
+* BootHole and BootHole2 fixes.
+* ...and tons of other fixes and cleanups...
+
+New in 2.04:
+
+* GCC 8 and 9 support.
+* Gnulib integration overhaul.
+* RISC-V support.
+* Xen PVH support.
+* Native UEFI secure boot support.
+* UEFI TPM driver.
+* New IEEE 1275 obdisk driver.
+* Btrfs RAID 5 and RIAD 6 support.
+* PARTUUID support.
+* VLAN support.
+* Native DHCP support.
+* Many ARM and ARM64 fixes.
+* Many SPARC fixes.
+* Many IEEE 1275 fixes.
+* ...and tons of other fixes and cleanups...
+
+New in 2.02:
+
+* New/improved filesystem and disk support:
+  * Big-endian UFS1.
+  * Experimental 64-bit ext2 support.
+  * Various fixes for non-512-byte sector devices.
+  * New `proc' filesystem framework, used by LUKS disks.
+  * Fix DM-RAID partition handling.
+  * New `nativedisk' command to switch from firmware to native disk drivers.
+  * Compressed HFS+.
+  * DragonFly BSD labels.
+  * CBFS (coreboot).
+  * Handle partitioned LVM properly.
+  * Use LVM UUIDs whenever possible.
+  * GPT PReP.
+  * New `progress' module that shows progress information while reading
+    files.
+  * ZFS features support.
+  * ZFS LZ4 support.
+  * XFS V5 format support.
+  * LVM RAID1 support.
+
+* New/improved terminal and video support:
+  * Monochrome text (matching `hercules' in GRUB Legacy).
+  * Morse code output using system speaker.
+  * `spkmodem' output (simple data protocol using system speaker).
+  * Handle Japanese special keys.
+  * coreboot framebuffer.
+  * Serial on ARC.
+  * Native vt100 handling for grub-emu, replacing the use of the curses
+    library.
+  * New gfxmenu options for terminal window positioning, theme background
+    image handling, and scrollbar padding, plus `item_pixmap_style' and
+    `highlight_overlay'.
+  * Support several more image types (paletted and greyscale).
+
+* Boot protocol improvements:
+  * Support Apple FAT binaries on non-Apple platforms.
+  * Improve FreeDOS direct loading support compatibility.
+  * Enable `linux16' on all x86 platforms, not just BIOS.
+  * New TrueCrypt ISO loader.
+  * multiboot2 boot-services EFI specification.
+  * multiboot2 EFI memory map specification.
+  * multiboot2 full-file specfication.
+
+* New/improved network support:
+  * New variables `net_default_*' containing properties of the default
+    interface.
+  * Autoload `http' and `tftp' modules if necessary.
+  * Improve TFTP robustness.
+  * Parse `nd' disk names in GRUB Legacy configuration files.
+  * Issue separate DNS queries for IPv4 and IPv6.
+  * Support IPv6 Router Advertisement to configure default router.
+  * New variable net_<interface>_next_server containing next server
+    from BOOTP reply.
+
+* Coreboot improvements:
+  * CBFS support both in on-disk images (loopback) and flash.
+  * Ability to launch another payload from flash or disk
+  * Coreboot framebuffer
+  * CBMEMC support (both logging and inspecting logs)
+  * Command for inspecting coreboot timestamps (`coreboot_boottime').
+  * Command for inspecting coreboot tables (`lscoreboot').
+  * New target default_payload.elf.
+  * Increased maximal core size.
+  * Prefer pmtimer for TSC calibration.
+
+* New/improved platform support:
+  * New `efifwsetup' and `lsefi' commands on EFI platforms.
+  * New `cmosdump' and `cmosset' commands on platforms with CMOS support.
+  * New command `pcidump' for PCI platforms.
+  * Improve opcode parsing in ACPI halt implementation.
+  * Use the TSC as a possible time source on i386-ieee1275.
+  * Merge PowerPC grub-mkrescue implementation with the common one.
+  * Support grub-mkrescue on i386-ieee1275, sparc64, bootinfo machines such
+    as pSeries, and mips-arc.
+  * Make grub-mkrescue better support Apple Intel Macs on CD.
+  * Enable GRUB Legacy configuration file parsing on EFI.
+  * Support halt for Loongson 2E.
+  * ARM U-Boot and EFI ports.
+  * Reorganise platform-dependent code in utilities to avoid #ifdef mess.
+  * AROS and Haiku support for userspace utilities.
+  * Xen PV port.
+  * Fix EFI stack alignment.
+  * ARM64 EFI port.
+  * On Linux, read partition start offsets from sysfs if possible.
+  * New grub-macbless utility, and better integration with Mac firmware in
+    grub-install.
+  * Support Yeeloong 3A.
+  * Add `cpuid --pae' option to detect Physical Address Extension on x86.
+  * Support for USB debug dongles.
+  * Support for *-emu on all platforms (previously only i386/x86_64 worked).
+  * Support *-emu on Windows.
+  * New platform `none' which builds only user level utilities. This is now
+    default if target CPU is not supported.
+  * Support for booting little-endian Linux kernel on powerpc.
+  * Support network boot with Oracle sun4v vnet devices.
+  * Added SAS disks to the IEEE 1275 Open Firmware device list.
+  * Try multiple methods for TSC (timestamp counter) calibration - PIT, pmtimer,
+    EFI Stall. If everything fails, use hardcoded frequency 800MHz.
+  * Support Hyper-V Gen2 platforms which lack PIT for TSC calibration.
+  * Map UEFI Persistent Memory to E820 persistent memory.
+  * New Xen loader on ARM64.
+  * Respect alignment requirement for block device IO buffers on EFI.
+
+* Security:
+  * Add optional facility to enforce that all files read by the core image
+    from disk have a valid detached digital signature.
+
+* Performance:
+  * Avoid costly division operations in many places.
+  * New boot time analysis framework (`./configure --enable-boot-time').
+  * Initialise USB ports in parallel.
+  * New `testspeed' command to test file read speed.
+  * Speed-up gfxterm by storing intermediate results in more compact format.
+  * Lazy LVM/mdraid scan.
+  * Disk hints.
+
+* Scripting:
+  * New `eval' and `tr' commands.
+  * grub-script-check fails on scripts containing no commands.
+
+* Installation and other utility improvements:
+  * Add option to compress files on installation or image creation.
+  * Using grub-reboot no longer requires setting `GRUB_DEFAULT=saved'.
+  * Support probing EFI System Partition (requires os-prober >= 1.58).
+  * Fix inconsistent use of `GRUB_CRYPTODISK_ENABLE' and
+    `GRUB_ENABLE_CRYPTODISK'; the latter is now used consistently.
+  * grub-mount handles symbolic links to directories.
+  * Support disabling submenus with `GRUB_DISABLE_SUBMENU' configuration key
+    for grub-mkconfig.
+  * grub-install, grub-mknetdir, grub-mkrescue, and grub-mkstandalone
+    rewritten in C.  They should now work in supported non-Unix-like
+    environments.
+  * Native mingw support.
+  * Ability to install on EFI under windows.
+  * Reorganise timeout handling using new `timeout_style' environment
+    variable and `GRUB_TIMEOUT_STYLE' configuration key for grub-mkconfig.
+    Menu hotkeys pressed during a hidden timeout now boot the corresponding
+    menu entry immediately.
+  * New `file' command and grub-file utility to check file types.
+  * New syslinux configuration file parser.
+  * Set menu entry class to primary OS name returned by os-prober to display
+    OS specific icon.
+  * On Linux x86 detect EFI word size in grub-install and automatically select
+    correct platform (x86_64-efi or i386-efi) to install. Requires Linux kernel
+    4.0 or higher.
+
+* Build system:
+  * Remove all uses of nested functions; GRUB no longer requires an
+    executable stack.
+  * Fix documentation build with Texinfo >= 5.1.
+  * More robust and documented cross-compiling support.
+  * Partial clang support for some platforms (experimental).
+  * Partial mingw64 x86_64-efi compile support (highly experimental).
+  * Partial mingw32 i386-* (other than already present i386-pc)
+    compile support (highly experimental).
+  * Support for grub-mkpasswd on Windows.
+  * Eliminate the use of AutoGen.  This allowed some performance
+    improvements to the build system.
+  * Remove variable length arrays.
+  * OpenBSD compile and tools support (NetBSD and FreeBSD were already supported).
+  * Fix build with FreeType >= 2.5.1.
+  * Make gentpl.py compatible with Python 3.  It now requires at least
+    Python 2.6.
+  * modinfo.sh contains build information now.
+  * Added many new tests to improve robustness.
+  * Target is built without libgcc now. Necessary builtins are reimplemented
+    directly. This removes requirement for target-specific runtime on build
+    system.
+  * emu libusb support removed (was broken and unmaintained).
+  * powerpc64le compile support.
+  * Use fixed timestamp when generating GRUB image for reproducible builds.
+  * Verify at build time that modules contain only supported relocations and their
+    structure matches what boot-time module loader expects.
+  * Do not require fonts on powerpc-ieee1275.
+
+* Revision control moved to git.
+
+New in 2.00:
+
+* Appearance:
+  * Official theme for gfxmenu (starfield)
+  * Menu is organised with submenus.
+  * Better default video mode selection using EDID.
+
+* New platforms:
+  * Itanium port.
+  * Fuloong2F support (including GRUB as firmware)
+  * Fuloong2E support (except GRUB as firmware)
+  * ARCS (SGI machines) port.
+  * qemu -M mips port.
+
+* grub-mount to mount filesystems using GRUB FS drivers and FUSE.
+
+* Changed security default so entries are locked by default if any superuser is
+  defined. 
+
+* New drivers:
+  * EHCI.
+  * AHCI.
+  * ESCC serial.
+  * IEEE1275 serial.
+  * EFI serial.
+  * Network stack for BIOS, IEEE1275, EMU and EFI, including TFTP, HTTP and DNS.
+
+* New filesystem, filters and disks formats:
+  * DVH partition map.
+  * Plan9 partition map.
+  * Big-endian mdraid.
+  * Big-endian cpio.
+  * ODC and NEWC cpio.
+  * ExFAT.
+  * Minix3fs.
+  * Big-endian minixfs.
+  * RomFS.
+  * Squash4.
+  * Support non-512B disk blocks.
+  * LUKS and GELI support.
+  * LDM read support (no install yet).
+  * LZOP.
+
+* Improved filesystem and disks formats support:
+  * HFS+ label support.
+  * Improved reiserfs support.
+  * multidevice, mirrored and raidz(2,3) ZFS support.
+  * RAID LVM (internal RAIDing) support.
+  * ZFS crypto support.
+  * ZLE, LZ4 and GZIP on ZFS support.
+  * Support ZFS up to 33.
+  * HFS string is now treated like mac-roman and not UTF-8
+  * HFS mtime support.
+  * Improved AFFS and SFS support.
+  * LZO-compressed btrfs support.
+  * cpio and tar symlinks support.
+  * Better FS detection to reduce false positives.
+
+* New boot protocols:
+  * Ability to load another coreboot payload when on coreboot.
+  * Plan9.
+  * Freedos.
+  * Ntldr/bootmgr (to load Windows bootloader).
+  * chainloader --bpb support to patch FAT or NTFS BPB in memory to correct
+    wrong partition offset.
+  * PXE chainloading support.
+  * Darwin 11 (Mac OS X Lion) protocol support.
+
+* Boot protocol improvements:
+  * Multiple initrd support.
+  * Basic illumos and xnu autoconfig.
+
+* Testing and debugging:
+  * New grub-fstest commands: cat, zfsinfo, testload xnu_uuid
+  * grub-fstest recursive directory compare for quickly checking that
+    a directory is read correctly.
+  * Backtace on crash (if gdb module is loaded, x86 only)
+  * Disk cache statistics gathering.
+  * GDB stub and GDB support script.
+  * "make check" and "make bootcheck" expanded to almost all platforms
+    (except i386-ieee1275, mips-arc, sparc64-ieee1275, ia64-efi and emu)
+  * New `time' command.
+
+* Performance:
+  * Lazy scanning to avoid accessing devices which aren't really used.
+    This avoids boot delay due to slow device scanning.
+  * Use CPU cache when accessing video memory.
+  * Search hints to first try the most likely device when searching for a
+    device with given UUID. This avoids slow scanning in most cases.
+
+* Internationalisation:
+  * Updated to Unicode 6.0.
+  * $"..." syntax for translation in grub scripting language. This allows easy
+    translation of grub.cfg at runtime.
+  * Translations to many languages included in official distribution.
+
+* Scripting:
+  * $grub_cpu and $grub_platform variables for conditioning grub.cfg on platform
+    at runtime.
+  * $feature_* variables to condition scripts on available features.
+  * Use of ids to identify menu entries.
+  * all_video module which is empty but depends on all video modules thus
+    allowing easy loading of all of them.
+
+* Installation:
+  * grub-mknetdir script for easy creation of netbootable GRUB directory.
+  * Itanium and mips support in grub-mkrescue.
+  * grub-install support for all platforms except emu.
+  * PreP partition install support.
+  * No files conflict between flavours (except grub-mkrescue for ppc). This
+    allows easy install of GRUB for several platforms.
+  * grub-mkstandalone script for easy creating of image including all modules
+    for platforms with generous limit on image size.
+  * program-transform-name now functions according to usual conventions.
+    Use --grubdir and --bootdir to get old behaviour.
+
+* ADLER32 and CRC64 support (for XZ and hashsum).
+
+* ofconsole renamed to console
+
+* Experimental support for compiling with Apple toolchain.
+
+* grub-mkdevicemap removed. Now all devices are detected on invocation of
+  any grub utility.
+
+New in 1.99:
+
+* Keyboard layouts support.
+
+* New `lsapm' command (i386-pc only).
+
+* Parser for GRUB Legacy configuration files.
+
+* Support RAID on virtio devices.
+
+* Remove deprecated `root' command.
+
+* New `euro.pf2' font which supports most European languages.
+
+* Avoid opening the same device twice on Open Firmware platforms.
+
+* Extend `vbeinfo' and `vbetest' commands to non-VBE graphics, as
+  `videoinfo' and `videotest'.
+
+* New `lsefisystab', `lssal', and `lsefimmap' commands on EFI platforms.
+
+* Support explicit user claim that a device is BIOS-visible.  Devices
+  listed in device.map will be assumed to be readable using only BIOS
+  facilities, rather than anything more complex such as LVM or RAID.
+
+* New bash-completion script for GRUB utilities.
+
+* Use ACPI to shut down if possible.
+
+* New `lsacpi' command.
+
+* Btrfs support.
+
+* New `--boot-directory' option to `grub-install', `grub-reboot', and
+  `grub-set-default', with clearer semantics than the previous
+  `--root-directory' option.
+
+* Rename CD-ROM device to "cd" on BIOS platforms.
+
+* Transparent decompression filters.
+
+* Simpler PXE image generation.  New `grub-mknetdir' utility to generate
+  netboot directory trees.
+
+* New relocator.  Allows for more kernel support and more
+  straightforward loader writing.
+
+* Handle USB pendrives exposed as floppies.
+
+* New Automake-based build system.
+
+* Add `sendkey' command (i386-pc only).
+
+* ZFS support.
+
+* Support 1.x versions of mdadm metadata.
+
+* Fix corruption when reading Reiserfs directory entries.
+
+* Bidirectional text and diacritics support.
+
+* Skip LVM snapshots.
+
+* MIPS Yeeloong firmware port.
+
+* Change grub-mkdevicemap to emit /dev/disk/by-id/ names where possible
+  on GNU/Linux.
+
+* Add `grub-mkconfig' support for Xen with Linux.
+
+* Add `grub-mkconfig' support for initrd images on Fedora 13.
+
+* Support >3GiB and <16MiB RAM in i386-qemu.
+
+* Add support for Cirrus 5446 and Bochs video cards.
+
+* Load more appropriate video drivers automatically in `grub-mkconfig'.
+
+* USB improvements, including hotplugging/hotunplugging, hub support,
+  and USB serial support.
+
+* AMD Geode CS5536 support.
+
+* Extensive updates to the Texinfo documentation.
+
+* Handle symbolic links under /dev/mapper on GNU/Linux.
+
+* Handle installation across multiple partition table types.
+
+* Add `cmostest' command (i386/x86_64 only).
+
+* Add support for DM-RAID disk devices on GNU/Linux.
+
+* Remove `grub-mkisofs'.  `grub-mkrescue' now uses GNU xorriso to build
+  CD images.
+
+* `grub-mkrescue' support for EFI, coreboot, and QEMU platforms.
+
+* Unify `grub-mkimage', `grub-setup', and `grub-install' source code
+  across platforms.
+
+* Fix VGA (as opposed to VBE) video driver, formerly a terminal driver.
+
+* Add menu hotkey support.
+
+* Add support for the nilfs2 filesystem.
+
+* `grub-probe' and `grub-mkconfig' support for NetBSD.
+
+* Support setting a background image in `grub-mkconfig'.
+
+* Support multiple terminals in `grub-mkconfig'.
+
+* Regexp support.
+
+* MIPS multiboot2 support.
+
+* Multiboot2 tag support.
+
+* sunpc partition table support.
+
+* Add a number of new language features to GRUB script: `for', `while',
+  `until', `elif', function parameters, `break', `continue', `shift',
+  multi-line quoted strings, positional parameters with `setparams',
+  `return', filename wildcard expansion, and `!'.
+
+* Support nested partition tables.  GRUB now prefers to name partitions
+  in the form `(hd0,msdos1,bsd1)' rather than `(hd0,1,a)'.
+
+* Speed up consecutive hostdisk operations on the same device.
+
+* Compile parts of `grub-emu' as modules.
+
+New in 1.98 - 2010-03-06:
+
+* Multiboot on EFI support.
+
+* Graphical menu support.
+
+* MIPS support.
+
+* Saved default menu entry support, with new utilities `grub-reboot' and
+  `grub-set-default'.
+
+* Unit testing framework.
+
+* Support for multiple terminals.
+
+* Encrypted password support, with a new utility `grub-mkpasswd-pbkdf2'.
+
+* `grub-mkfloppy' removed; use `grub-mkrescue' to create floppy images.
+
+* Add grub-probe support for GNU/Hurd.
+
+* Add support for gettext.
+
+New in 1.97:
+
+* Add support for loading XNU (MacOS X kernel).
+
+* ACPI override support.
+
+* Integrated gptsync.
+
+* Password protection support.
+
+* Partition manipulation tool.
+
+* Add `keystatus' command.
+
+* Unicode fonts are now used by default.
+
+* Add `hdparm' command.
+
+* Add support for getting the current date and time from CMOS as variables.
+
+* Add `drivemap' command.
+
+* Add support for RAID levels 4,6 and 10.
+
+* update-grub is replaced by grub-mkconfig.
+
+* When booting from PXE, PXE can be used to load files.
+
+* High resolution timer support.
+
+* Image loaders now support IO buffering.
+
+* Add `crc' command.
+
+* Add Cygwin support.
+
+* Add x86_64 EFI support.
+
+* Use LZMA compression instead of LZO.
+
+* Support for saving the environment from and loading the environment
+  from a file.
+
+* Allow the UUID to be used as device name.
+
+* The `search' command can use UUIDs now.
+
+* Add support for IEEE 1275 on i386.
+
+* Create partmap.lst and use it to automatically load partition map
+  modules.
+
+* grub-mkconfig supports os-prober to add operating systems to the
+  boot menu.
+
+* The ATA driver supports devices bigger than 2 TiB.
+
+* Add support for the UDF, AFS and EXT4 filesystems.
+
+* The ISO9660 filesystem supports the Joliet extension
+
+* Add support for loading kernels of FreeBSD, NetBSD and OpenBSD.
+
+* Add new command `sleep'.
+
+* Support for direct access to AT keyboards.
+
+* New utility `grub-fstest'.
+
+New in 1.96 - 2008-02-03:
+
+* The license term is changed to GNU General Public License Version 3.
+
+* grub-emu is made optional.  Now you have to use
+  `--enable-grub-emu' to enable it.
+
+* Add Multiboot2 support.
+
+* grub-emu can access the host filesystem now.
+
+* Add support for the NTFS, cpio/tar and Reiserfs filesystems.
+
+* Add support for ATA/ATAPI.
+
+* Add update-grub script to generate grub.cfg.
+
+* Add grub-mkrescue script to generate floppy or ElTorito images
+  (i386-pc only).
+
+* Add support for background images in gfxterm (background_image command).
+
+* Add support for detection of 64-bit support in CPU (cpuid command).
+
+* GPT is now enabled in i386-pc target.
+
+* Add grub-install for EFI.
+
+* Ported to the following new platforms: Efika, coreboot (a.k.a. LinuxBIOS),
+  OLPC XO.
+
+* Add support for colored menu (menu_color_normal and menu_color_highlight
+  variables).
+
+* Fix support for loading Linux zImages (such as memtest86).
+
+New in 1.95 - 2006-10-15:
+
+* Number partitions from 1 instead of 0. For instance, the first
+  partition of "hd0" is now "hd0,1" but not "hd0,0".
+
+* grub-probefs is renamed to grub-probe, and supports printing a
+  guessed OS device name and a GRUB drive name.
+
+* RAID and LVM support is added.
+
+* New command, echo.
+
+* The disk API is changed to support 64-bit addressing.
+
+* A TGA loader is added for the video API.
+
+New in 1.94 - 2006-06-04:
+
+* Fix several serious bugs in HFS+.
+
+* Add experimental EFI support. Chainloading and Linux loading are
+  supported at the moment.
+
+* Add a new command "blocklist" to show a block list.
+
+* Use --with-platform to specify a boot environment. For now, efi,
+  ieee1275 and pc are supported.
+
+* Use the filename "kernel.elf" instead of "grubof" on ieee1275.
+
+* Install GRUB into pkglibdir instead of pkgdatadir.
+
+* Support environmental variables. You can export variables by the
+  command "export".
+
+* Remove the commands "default" and "timeout". They are now variables.
+
+* Add the commands "source" and "." to include a file.
+
+* Implement experimental Video API and a new terminal "gfxterm" based
+  on the Video API.
+
+
+New in 1.93 - 2006-03-10:
+
+* Add support for the HFS+ wrapper.
+
+* Major improvements to scripting support.
+
+* Menu entries are now scriptable.
+
+
+New in 1.92 - 2005-12-25:
+
+* Add support for GPT partition table format.
+
+* Add a new command "play" to play an audio file on PC.
+
+* Add support for Linux/ADFS partition table format.
+
+* Add support for BASH-like scripting.
+
+* Add support for Apple HFS+ filesystems.
+
+
+New in 1.91 - 2005-10-15:
+
+* Add support for LZO version 2.
+
+* Support completion in the entry editor.
+
+* Add VBE support.
+
+* New commands, "search", "vbetest" and "vbeinfo".
+
+* The option BOOT_IMAGE is passed to Linux.
+
+* Add support for automatic decompression for gzip.
+
+* Add support for terminfo and serial.
+
+* Add support for x86_64.
+
+* GRUB itself is a Multiboot-compliant kernel.
+
+* Add new filesystems: XFS, SFS, and AFFS.
+
+
+New in 1.90 - 2005-08-07:
+
+* Rename the project name PUPA to GRUB. Now this version is the
+  developmental version of GRUB officially.
+
+* The GRUB emulator ``grub-emu'' is added.
+
+* Add support for newworld Mac. This should work with other
+  PowerPC-based machines as well, if they use IEEE 1275
+  (Open Firmware).
+
+* Too many changes to describe. Look at ChangeLog for more details.
+
+
+New in 0.7:
+
+* Problems in cross-compiling PUPA are fixed.
+
+* Use -mrtd and -mregparm=3 to reduce the generated code sizes.	This
+  means that any missing prototypes could be fatal. Also, you must take
+  care when writing assembly code. See the comments at the beginning of
+  startup.S, for more details.
+
+* New utility, ``pupa-setup''. This sets up PUPA to make it bootable
+  from a real disk.
+
+* New commands, "prefix", "insmod", "rmmod" and "lsmod" are added into
+  the rescue mode to manipulate PUPA modules.
+
+* Linux support is added. Initrd is not support yet.
+
+* Reduce the size of a core image significantly by compressing a large
+  part of the core image and decompressing itself at boot time. The
+  currently used algorithm is LZO (more precisely, LZO1X-999). So you
+  have to install LZO to build PUPA. See
+  <http://www.oberhumer.com/opensource/lzo/>, for more information.
+
+
+New in 0.6 - 2002-12-27, Yoshinori K. Okuji:
+
+* The chainloader and the FAT filesystem are modularized.
+
+* The structure of the source tree is a bit changed.
+
+* Support for building loadable modules is added.
+
+* Some generic parts of pupa-mkimage are segregated.
+
+* Some documentation files are added, according to the GNU Coding
+  Standards.

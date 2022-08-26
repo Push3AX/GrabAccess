@@ -1,0 +1,98 @@
+#! /bin/sh
+set -e
+
+# grub-mkconfig helper script.
+# Copyright (C) 2006,2007,2008,2009,2012  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+datarootdir="@datarootdir@"
+
+export TEXTDOMAIN=@PACKAGE@
+export TEXTDOMAINDIR="@localedir@"
+
+. "$pkgdatadir/grub-mkconfig_lib"
+
+osx_entry() {
+    if [ x$2 = x32 ]; then
+        # TRANSLATORS: it refers to kernel architecture (32-bit)
+	bitstr="$(gettext "(32-bit)")"
+    else
+        # TRANSLATORS: it refers to kernel architecture (64-bit)
+	bitstr="$(gettext "(64-bit)")"
+    fi
+    # TRANSLATORS: it refers on the OS residing on device %s
+    onstr="$(gettext_printf "(on %s)" "${GRUB_DEVICE}")"
+        cat << EOF
+menuentry '$(echo "Darwin/Mac OS X $bitstr $onstr" | grub_quote)' --class osx --class darwin --class os \$menuentry_id_option 'osprober-xnu-$2-$(grub_get_device_id "${GRUB_DEVICE}")'  {
+EOF
+	save_default_entry | grub_add_tab
+	prepare_grub_to_access_device ${GRUB_DEVICE} | grub_add_tab
+	cat << EOF
+        load_video
+        set do_resume=0
+        if [ /var/vm/sleepimage -nt10 / ]; then
+           if xnu_resume /var/vm/sleepimage; then
+             set do_resume=1
+           fi
+        fi
+        if [ \$do_resume = 0 ]; then
+           xnu_uuid ${OSXUUID} uuid
+           if [ -f /Extra/DSDT.aml ]; then
+              acpi -e /Extra/DSDT.aml
+           fi
+           if [ /kernelcache -nt /System/Library/Extensions ]; then
+              $1 /kernelcache boot-uuid=\${uuid} rd=*uuid
+           elif [ -f /System/Library/Kernels/kernel ]; then
+              $1 /System/Library/Kernels/kernel boot-uuid=\${uuid} rd=*uuid
+              xnu_kextdir /System/Library/Extensions
+           else
+              $1 /mach_kernel boot-uuid=\${uuid} rd=*uuid
+              if [ /System/Library/Extensions.mkext -nt /System/Library/Extensions ]; then
+                xnu_mkext /System/Library/Extensions.mkext
+              else
+                xnu_kextdir /System/Library/Extensions
+              fi
+           fi
+           if [ -f /Extra/Extensions.mkext ]; then
+              xnu_mkext /Extra/Extensions.mkext
+           fi
+           if [ -d /Extra/Extensions ]; then
+              xnu_kextdir /Extra/Extensions
+           fi
+           if [ -f /Extra/devprop.bin ]; then
+              xnu_devprop_load /Extra/devprop.bin
+           fi
+           if [ -f /Extra/splash.jpg ]; then
+              insmod jpeg
+              xnu_splash /Extra/splash.jpg
+           fi
+           if [ -f /Extra/splash.png ]; then
+              insmod png
+              xnu_splash /Extra/splash.png
+           fi
+           if [ -f /Extra/splash.tga ]; then
+              insmod tga
+              xnu_splash /Extra/splash.tga
+           fi
+        fi
+}
+EOF
+}
+
+OSXUUID="`${grub_probe} --target=fs_uuid --device ${GRUB_DEVICE} 2> /dev/null`"
+osx_entry xnu_kernel 32
+osx_entry xnu_kernel64 64

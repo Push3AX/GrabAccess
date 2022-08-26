@@ -1,0 +1,38 @@
+#! @BUILD_SHEBANG@
+# Copyright (C) 2013  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+set -e
+grubshell=@builddir@/grub-shell
+
+. "@builddir@/grub-core/modinfo.sh"
+
+case "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" in
+    # FIXME: Only mips currently supports configurable core compression
+    *-emu | i386-* | x86_64-* | sparc64-* | ia64-*)
+	exit 77
+	;;
+esac
+
+
+v=$(echo hello | "${grubshell}" --grub-mkimage-extra=--compress=xz)
+if [ "$v" != "Hello World" ]; then
+   exit 1
+fi
+
+v=$(echo hello | "${grubshell}" --grub-mkimage-extra=--compress=none)
+if [ "$v" != "Hello World" ]; then
+   exit 1
+fi

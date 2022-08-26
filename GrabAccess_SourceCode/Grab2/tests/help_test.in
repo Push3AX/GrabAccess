@@ -1,0 +1,16 @@
+#! @BUILD_SHEBANG@
+set -e
+
+. "@builddir@/grub-core/modinfo.sh"
+
+template="Usage: help [PATTERN ...]
+Show a help message.
+
+-h, --help              Display this help and exit.
+-u, --usage             Display the usage of this command and exit.
+Hello World"
+outpu="$(echo 'help help; hello' | @builddir@/grub-shell)"
+
+if [ "$template" != "$outpu" ]; then
+    exit 1
+fi

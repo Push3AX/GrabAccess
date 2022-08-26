@@ -1,0 +1,21 @@
+#! @BUILD_SHEBANG@
+set -e
+
+# grub-script-check refuses to pass a file with no commands; this usually
+# indicates a bug in the code generating that file.
+
+@builddir@/grub-script-check <<EOF && exit 1
+
+EOF
+
+@builddir@/grub-script-check <<EOF && exit 1
+# comment
+EOF
+
+@builddir@/grub-script-check <<EOF && exit 1
+# comment 1
+# comment 2
+
+EOF
+
+exit 0

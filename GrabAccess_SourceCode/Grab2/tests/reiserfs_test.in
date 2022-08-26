@@ -1,0 +1,21 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+if [ "x$EUID" = "x" ] ; then
+  EUID=`id -u`
+fi
+
+if [ "$EUID" != 0 ] ; then
+   exit 99
+fi
+
+if ! which mkfs.reiserfs >/dev/null 2>&1; then
+   echo "mkfs.reiserfs not installed; cannot test reiserfs."
+   exit 99
+fi
+
+"@builddir@/grub-fs-tester" reiserfs
+
+# Kernels since at least 4.15 can not mount ReiserFS filesystems of the old format.
+#"@builddir@/grub-fs-tester" reiserfs_old

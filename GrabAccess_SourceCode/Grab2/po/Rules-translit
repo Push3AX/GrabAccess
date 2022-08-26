@@ -1,0 +1,16 @@
+DISTFILES.common.extra4 = hebrew.sed cyrillic.sed greek.sed arabic.sed Rules-translit
+
+de@hebrew.po-create: de.po hebrew.sed
+	LC_ALL=C $(MSGFILTER) -i $< -o $(srcdir)/de@hebrew.po sed -f $(srcdir)/hebrew.sed
+
+en@hebrew.po-create: $(DOMAIN).pot hebrew.sed
+	LC_ALL=C $(MSGINIT) -i $(srcdir)/$(DOMAIN).pot --no-translator -l en@hebrew -o - 2>/dev/null | LC_ALL=C $(MSGCONV) -t UTF-8 | LC_ALL=C $(MSGFILTER) -o $(srcdir)/en@hebrew.po -i - sed -f $(srcdir)/hebrew.sed
+
+en@cyrillic.po-create: $(DOMAIN).pot cyrillic.sed
+	LC_ALL=C $(MSGINIT) -i $(srcdir)/$(DOMAIN).pot --no-translator -l en@cyrillic -o - 2>/dev/null | LC_ALL=C $(MSGCONV) -t UTF-8 | LC_ALL=C $(MSGFILTER) -o $(srcdir)/en@cyrillic.po -i - sed -f $(srcdir)/cyrillic.sed
+
+en@greek.po-create: $(DOMAIN).pot greek.sed
+	LC_ALL=C $(MSGINIT) -i $(srcdir)/$(DOMAIN).pot --no-translator -l en@greek -o - 2>/dev/null | LC_ALL=C $(MSGCONV) -t UTF-8 | LC_ALL=C $(MSGFILTER) -o $(srcdir)/en@greek.po -i - sed -f $(srcdir)/greek.sed
+
+en@arabic.po-create: $(DOMAIN).pot arabic.sed
+	LC_ALL=C $(MSGINIT) -i $(srcdir)/$(DOMAIN).pot --no-translator -l en@arabic -o - 2>/dev/null | LC_ALL=C $(MSGCONV) -t UTF-8 | LC_ALL=C $(MSGFILTER) -o $(srcdir)/en@arabic.po -i - sed -f $(srcdir)/arabic.sed

@@ -1,0 +1,3 @@
+. type=dir
+	dev type=dir
+		console type=char device=0 mode=666 gid=0 uid=0

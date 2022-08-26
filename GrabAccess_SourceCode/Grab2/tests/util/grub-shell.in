@@ -1,0 +1,518 @@
+#! @BUILD_SHEBANG@
+set -e
+
+# Run GRUB script in a Qemu instance
+# Copyright (C) 2009,2010  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+# Initialize some variables.
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+datarootdir="@datarootdir@"
+builddir="@builddir@"
+srcdir="@srcdir@"
+PACKAGE_NAME=@PACKAGE_NAME@
+PACKAGE_TARNAME=@PACKAGE_TARNAME@
+PACKAGE_VERSION=@PACKAGE_VERSION@
+
+# Force build directory components
+PATH="${builddir}:$PATH"
+export PATH
+
+trim=0
+
+# Usage: usage
+# Print the usage.
+usage () {
+    cat <<EOF
+Usage: $0 [OPTION] [SOURCE]
+Run GRUB script in a Qemu instance.
+
+  -h, --help              print this message and exit
+  -v, --version           print the version information and exit
+  --boot=[fd|hd|cd|net]   boot method for Qemu instance
+  --modules=MODULES       pre-load specified modules MODULES
+  --qemu=FILE             Name of qemu binary
+  --disk=FILE             Attach FILE as a disk
+  --qemu-opts=OPTIONS     extra options to pass to Qemu instance
+  --files=FILES           add files to the image
+  --mkrescue-arg=ARGS     additional arguments to grub-mkrescue
+  --timeout=SECONDS       set timeout
+  --trim                  trim firmware output
+
+$0 runs input GRUB script or SOURCE file in a Qemu instance and prints
+its output.
+
+Report bugs to <bug-grub@gnu.org>.
+EOF
+}
+
+. "${builddir}/grub-core/modinfo.sh"
+qemuopts="${GRUB_QEMU_OPTS}"
+serial_port=com0
+serial_null=
+halt_cmd=halt
+pseries=n
+disk="hda "
+case "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" in
+    *-emu)
+	device_map=`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` || exit 1
+	boot=emu
+	console=console
+	disk=0
+	# To skip "Welcome to GRUB" and color setttings
+	trim=1
+	serial_port=
+	;;
+    powerpc-ieee1275)
+	boot=hd
+	qemu=qemu-system-ppc
+	console=console
+	serial_port=escc-ch-b
+	serial_null="-serial null"
+	netbootext=elf
+	trim=1
+	qemuopts="-M mac99,via=pmu $qemuopts"
+	;;
+
+    sparc64-ieee1275)
+	boot=cd
+	qemu=qemu-system-sparc64
+	console=
+	serial_port=ieee1275/ttya
+	trim=1
+	qemuopts="$qemuopts -no-reboot"
+	halt_cmd=reboot
+	;;
+
+    mips-qemu_mips)
+	boot=mips_qemu
+	qemu=qemu-system-mips
+	qemuopts="-M mips $qemuopts"
+	console=vga_text
+	;;
+    mips-arc)
+	boot=cd
+	qemu=qemu-system-mips64
+	qemuopts="-M indy $qemuopts"
+	serial_port=arc/serial0/line0
+	console=
+	trim=1
+	;;
+    mipsel-arc)
+	boot=cd
+	qemu=qemu-system-mips64el
+	qemuopts="-M magnum $qemuopts -no-reboot"
+	serial_port=arc/multi0/serial0
+	console=console
+	halt_cmd=reboot
+	trim=1
+	;;
+    mipsel-qemu_mips)
+	boot=mipsel_qemu
+	qemu=qemu-system-mipsel
+	qemuopts="-M mips $qemuopts"
+	console=vga_text
+	;;
+    mipsel-loongson)
+	boot=mipsel_fulong2e
+	qemu=qemu-system-mips64el
+	qemuopts="-M fulong2e $qemuopts"
+	console=
+	trim=1
+	;;
+    i386-coreboot)
+	boot=coreboot
+	qemu=qemu-system-i386
+	console=vga_text
+	;;
+    i386-multiboot)
+	boot=cd
+	qemu=qemu-system-i386
+	console=vga_text;;
+
+    i386-ieee1275)
+	boot=hd
+	qemu=qemu-system-i386
+	console=console
+	trim=1
+	disk="hdb "
+	;;
+    i386-qemu)
+	boot=qemu
+	qemu=qemu-system-i386
+	console=vga_text;;
+
+    i386-pc)
+	boot=cd
+	qemu=qemu-system-i386
+	console=console
+	netbootext=0
+	;;
+
+    i386-efi)
+	qemu=qemu-system-i386
+	boot=cd
+	console=console
+	trim=1
+	qemuopts="-bios OVMF-ia32.fd $qemuopts"
+	;;
+    x86_64-efi)
+	qemu=qemu-system-x86_64
+	boot=cd
+	console=console
+	trim=1
+	qemuopts="-bios OVMF.fd $qemuopts"
+	;;
+    arm64-efi)
+	qemu=qemu-system-aarch64
+	boot=hd
+	console=console
+	trim=1
+	qemuopts="-machine virt -cpu cortex-a57 -bios /usr/share/qemu-efi/QEMU_EFI.fd $qemuopts"
+	disk="device virtio-blk-device,drive=hd1 -drive if=none,id=hd1,file="
+	serial_port=
+	;;
+     arm-efi)
+	qemu=qemu-system-arm
+	boot=hd
+	console=console
+	trim=1
+	qemuopts="-machine virt -bios /usr/share/ovmf-arm/QEMU_EFI.fd $qemuopts"
+	disk="device virtio-blk-device,drive=hd1 -drive if=none,id=hd1,file="
+	serial_port=efi0
+	;;
+    *)
+	boot=hd
+	qemu=qemu-system-i386
+	console=console;;
+esac
+
+timeout=60
+mkimage_extra_arg=
+
+# Check the arguments.
+for option in "$@"; do
+    case "$option" in
+    -h | --help)
+	usage
+	exit 0 ;;
+    -v | --version)
+	echo "$0 (GNU GRUB ${PACKAGE_VERSION})"
+	exit 0 ;;
+    --trim)
+	trim=1
+	;;
+    --debug)
+        debug=1 ;;
+    --modules=*)
+	ms=`echo "$option" | sed -e 's/--modules=//' -e 's/,/ /g'`
+	modules="$modules $ms" ;;
+    --files=*)
+	fls=`echo "$option" | sed -e 's/--files=//' -e 's/,/ /g'`
+	files="$files $fls" ;;
+    --mkrescue-arg=*)
+	mkr=`echo "$option" | sed -e 's/--mkrescue-arg=//' -e 's/,/ /g'`
+	mkrescue_args="$mkrescue_args $mkr" ;;
+    --qemu=*)
+	qemu=`echo "$option" | sed -e 's/--qemu=//' -e 's/,/ /g'`;;
+    --pseries)
+	qemu=qemu-system-ppc64
+	serial_port=ieee1275/hvterm
+	serial_null=
+	qemuopts="$(echo $qemuopts | sed -E 's/-M [^ ]+//') -M pseries -no-reboot"
+	trim=1
+	pseries=y
+	    ;;
+    --qemu-opts=*)
+        qs=`echo "$option" | sed -e 's/--qemu-opts=//'`
+        qemuopts="$qemuopts $qs" ;;
+    --disk=*)
+        dsk=`echo "$option" | sed -e 's/--disk=//'`
+	if [ ${grub_modinfo_platform} = emu ]; then
+	    echo "(hd$disk)  $dsk" >> "$device_map"
+	    disk="$((disk+1))"
+	else
+	    if [ "$disk" = error ]; then
+		echo "Too many disks" 1>&2
+		exit 1;
+	    fi
+            qemuopts="$qemuopts -$disk$dsk"
+	    if [ "$disk" = "hda " ]; then
+		disk="hdb ";
+	    elif [ "$disk" = "hdb " ]; then
+		# CDROM is hdc
+		disk="hdd "
+	    elif [ "$disk" = "hdd " ]; then
+		# CDROM is hdc
+		disk=error
+	    fi
+	fi
+	;;
+    --timeout=*)
+        timeout=`echo "$option" | sed -e 's/--timeout=//'`
+	;;
+
+    # Intentionally undocumented
+    --grub-mkimage-extra)
+	mkimage_extra_arg="$mkimage_extra_arg `argument $option "$@"`"; shift ;;
+    --grub-mkimage-extra=*)
+	mkimage_extra_arg="$mkimage_extra_arg `echo "$option" | sed 's/--grub-mkimage-extra=//'`" ;;
+
+    --boot=*)
+        dev=`echo "$option" | sed -e 's/--boot=//'`
+	if   [ "$dev" = "fd" ] ; then boot=fd;
+	elif [ "$dev" = "hd" ] ; then boot=hd;
+	elif [ "$dev" = "cd" ] ; then boot=cd;
+	elif [ "$dev" = "net" ] ; then boot=net;
+	elif [ "$dev" = "qemu" ] ; then boot=qemu;
+	elif [ "$dev" = "coreboot" ] ; then boot=coreboot;
+	elif [ "$dev" = "mips_qemu" ] ; then boot=mips_qemu;
+	elif [ "$dev" = "mipsel_qemu" ] ; then boot=mipsel_qemu;
+	elif [ "$dev" = "mipsel_fulong2e" ] ; then boot=mipsel_fulong2e;
+	else
+	    echo "Unrecognized boot method \`$dev'" 1>&2
+	    usage
+	    exit 1
+	fi ;;
+    -*)
+	echo "Unrecognized option \`$option'" 1>&2
+	usage
+	exit 1 ;;
+    *)
+	if [ "x${source}" != x ] ; then
+	    echo "too many parameters at the end" 1>&2
+	    usage
+	    exit 1
+	fi
+	source="${option}" ;;
+    esac
+done
+
+if [ "x${source}" = x ] ; then
+    tmpfile=`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` || exit 1
+    while read REPLY; do
+	echo "$REPLY" >> ${tmpfile}
+    done
+    source=${tmpfile}
+fi
+
+cfgfile=`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` || exit 1
+cat <<EOF >${cfgfile}
+grubshell=yes
+enable_progress_indicator=0
+export enable_progress_indicator
+EOF
+
+
+if [ "${grub_modinfo_platform}" != emu ]; then
+    echo insmod serial >>${cfgfile}
+fi
+
+if [ "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" = powerpc-ieee1275 ]; then
+    echo insmod escc >>${cfgfile}
+fi
+if [ "${serial_port}" != "" ]; then
+    echo "serial ${serial_port}" >>${cfgfile}
+    term="serial_${serial_port}"
+else
+    term=console
+fi
+
+cat <<EOF >>${cfgfile}
+terminfo -g 1024x1024 ${term} dumb
+terminal_input ${term}
+terminal_output ${term}
+EOF
+
+trim_head=664cbea8-132f-4770-8aa4-1696d59ac35c
+
+if [ $trim = 1 ]; then
+    echo "echo $trim_head" >>${cfgfile}
+fi
+
+rom_directory=`mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` || exit 1
+
+for mod in ${modules}
+do
+    echo "insmod ${mod}" >> ${cfgfile}
+done
+
+cat <<EOF >>${cfgfile}
+source "\$prefix/testcase.cfg"
+# Stop serial output to suppress "ACPI shutdown failed" error.
+EOF
+# Attempt to switch to console on i386-ieee1275 causes "screen not found" message
+if [ x$console != x ] && [ x"${grub_modinfo_target_cpu}-${grub_modinfo_platform}" != xi386-ieee1275 ]; then
+    echo "terminal_output $console" >>${cfgfile}
+fi
+echo "${halt_cmd}" >>${cfgfile}
+
+test -z "$debug" || echo "GRUB script: ${cfgfile}" >&2
+test -z "$debug" || echo "GRUB testcase script: ${tmpfile}" >&2
+test -z "$debug" || echo "Boot device: ${boot}" >&2
+
+isofile=`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` || exit 1
+test -z "$debug" || echo "GRUB ISO file: ${isofile}" >&2
+test -z "$debug" || echo "GRUB ROM directory: ${rom_directory}" >&2
+
+if test -z "$debug"; then
+  qemuopts="${qemuopts} -nographic -monitor file:/dev/null"
+  # SeaBIOS 1.11.0 added support for VGA emulation over a serial port.  If
+  # this is configured in SeaBIOS, then -nographic causes some extra junk to
+  # end up on the serial console, which interferes with our tests.  This
+  # workaround unfortunately causes qemu to issue a warning 'externally
+  # provided fw_cfg item names should be prefixed with "opt/"', but there
+  # doesn't seem to be a better option.
+  qemuopts="${qemuopts} -fw_cfg name=etc/sercon-port,string=0"
+fi
+
+if [ x$boot != xnet ] && [ x$boot != xemu ]; then
+    pkgdatadir="@builddir@" "@builddir@/grub-mkrescue" "--output=${isofile}" "--override-directory=${builddir}/grub-core" \
+	--rom-directory="${rom_directory}" \
+	--locale-directory="@srcdir@/po" \
+	--themes-directory="@srcdir@/themes" \
+	$mkimage_extra_arg ${mkrescue_args} \
+	"/boot/grub/grub.cfg=${cfgfile}" "/boot/grub/testcase.cfg=${source}" \
+	${files} >/dev/null 2>&1
+fi
+if [ x$boot = xhd ]; then
+    if [ "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" = arm64-efi ] || [ "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" = arm-efi ]; then
+	device="device virtio-blk-device,drive=hd0 -drive if=none,id=hd0,file="
+    elif [ "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" = mips-arc ]; then
+	device="hdb "
+    else
+	device="hda "
+    fi
+    bootdev="-boot c"
+fi
+if [ x$boot = xcd ]; then
+    if [ "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" = arm64-efi ] || [ "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" = arm-efi ]; then
+	device="device virtio-blk-device,drive=cd0 -drive if=none,id=cd0,media=cdrom,file="
+    elif [ "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" = powerpc-ieee1275 ] && [ x$pseries != xy ] ; then
+	device="-drive if=ide,media=cdrom,file="
+    else
+	device="cdrom "
+    fi
+    bootdev="-boot d"
+fi
+if [ x$boot = xfd ]; then
+    device="fda "
+    bootdev="-boot a"
+fi
+
+if [ x$boot = xqemu ]; then
+    bootdev="-bios ${rom_directory}/qemu.img"
+    device="cdrom "
+fi
+
+if [ x$boot = xmipsel_qemu ]; then
+    bootdev="-kernel ${rom_directory}/mipsel-qemu_mips.elf"
+    device="cdrom "
+fi
+
+if [ x$boot = xmipsel_fulong2e ]; then
+    bootdev="-kernel ${rom_directory}/mipsel-loongson.elf -append machtype=lemote-fuloong-2e"
+    device="cdrom "
+fi
+
+if [ x$boot = xmips_qemu ]; then
+    bootdev="-kernel ${rom_directory}/mips-qemu_mips.elf"
+    device="cdrom "
+fi
+
+if [ x$boot = xcoreboot ]; then
+    imgfile=`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` || exit 1
+    cp "${GRUB_COREBOOT_ROM}" "${imgfile}"
+    "${GRUB_CBFSTOOL}" "${imgfile}" add-payload -f "${rom_directory}/coreboot.elf" -n fallback/payload
+    bootdev="-bios ${imgfile}"
+    device="cdrom "
+    test -z "$debug" || echo "Coreboot image: ${imgfile}" >&2
+fi
+
+if [ "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" = mipsel-arc ]; then
+    case "$boot" in
+	hd)
+	    bootdev="-global ds1225y.filename=$GRUB_QEMU_MAGNUM_NVRAM_DIR/disk" ;;
+	*)
+	    bootdev="-global ds1225y.filename=$GRUB_QEMU_MAGNUM_NVRAM_DIR/cdrom";;
+    esac
+fi
+
+do_trim ()
+{
+    if [ $trim = 1 ]; then
+	awk '{ if (have_head == 1) print $0; } /664cbea8-132f-4770-8aa4-1696d59ac35c/ { have_head=1; }'
+    else
+	cat
+    fi
+}
+
+copy_extra_files() {
+    _destdir="$1"
+    shift
+
+    # FIXME support '=' in file names
+    for _file in "$@"; do
+	_target="${_file%=*}"
+	_source="${_file#*=}"
+	[ -n "$_source" ] || _source="$_target"
+	_target="$_destdir/$_target"
+	_targetdir="$(dirname "$_target")"
+	[ -d "$_targetdir" ] || mkdir -p "$_targetdir"
+	cp "$_source" "$_target"
+    done
+}
+
+if [ x$boot = xnet ]; then
+    netdir=`mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` || exit 1
+    pkgdatadir="@builddir@" "@builddir@/grub-mknetdir" "--grub-mkimage=${builddir}/grub-mkimage" "--directory=${builddir}/grub-core" "--net-directory=$netdir" ${mkrescue_args} > /dev/null
+    cp "${cfgfile}" "$netdir/boot/grub/grub.cfg"
+    cp "${source}" "$netdir/boot/grub/testcase.cfg"
+    [ -z "$files" ] || copy_extra_files "$netdir" $files
+    timeout -s KILL $timeout "${qemu}" ${qemuopts} ${serial_null} -serial file:/dev/stdout -boot n -net "user,tftp=$netdir,bootfile=/boot/grub/${grub_modinfo_target_cpu}-${grub_modinfo_platform}/core.$netbootext"  -net nic  | cat | tr -d "\r" | do_trim
+elif [ x$boot = xemu ]; then
+    rootdir="$(mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX")"
+    grubdir="$rootdir/boot/grub"
+    mkdir -p "$grubdir/fonts"
+    mkdir -p "$grubdir/themes"
+    mkdir -p "$grubdir/locale"
+    test -f "@builddir@/"unicode.pf2 && cp "@builddir@/"unicode.pf2 "$grubdir/fonts/unicode.pf2"
+    cp -R "@srcdir@/themes/starfield" "$grubdir/themes/starfield"
+    for file in "@srcdir@/po/"*.gmo; do
+	if [ -f "$file" ]; then
+	    cp "$file" "$grubdir/locale/"
+	fi
+    done
+    cp "${cfgfile}" "$grubdir/grub.cfg"
+    cp "${source}" "$grubdir/testcase.cfg"
+    [ -z "$files" ] || copy_extra_files "$rootdir" $files
+    roottar="$(mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX")"
+    (cd "$rootdir"; tar cf "$roottar" .)
+    @builddir@/grub-core/grub-emu -m "$device_map" --memdisk "$roottar" -r memdisk -d "/boot/grub" | tr -d "\r" | do_trim
+    test -n "$debug" || rm -rf "$rootdir"
+    test -n "$debug" || rm -f "$roottar"
+else
+    timeout -s KILL $timeout "${qemu}" ${qemuopts} ${serial_null} -serial file:/dev/stdout -${device}"${isofile}" ${bootdev} | cat | tr -d "\r" | do_trim
+fi
+if [ x$boot = xcoreboot ]; then
+    test -n "$debug" || rm -f "${imgfile}"
+fi
+test -n "$debug" || rm -f "${isofile}"
+test -n "$debug" || rm -rf "${rom_directory}"
+test -n "$debug" || rm -f "${tmpfile}" "${cfgfile}"
+exit 0
+
+

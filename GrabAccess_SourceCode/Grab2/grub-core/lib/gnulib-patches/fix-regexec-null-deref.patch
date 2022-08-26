@@ -1,0 +1,12 @@
+--- a/lib/regexec.c	2020-10-21 14:25:35.310195912 +0000
++++ b/lib/regexec.c	2020-11-05 10:55:09.621542984 +0000
+@@ -1692,6 +1692,9 @@
+ {
+   Idx top = mctx->state_log_top;
+
++  if (mctx->state_log == NULL)
++    return REG_NOERROR;
++
+   if ((next_state_log_idx >= mctx->input.bufs_len
+        && mctx->input.bufs_len < mctx->input.len)
+       || (next_state_log_idx >= mctx->input.valid_len

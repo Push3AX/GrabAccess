@@ -1,0 +1,24 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+if [ "x$EUID" = "x" ] ; then
+  EUID=`id -u`
+fi
+
+if [ "$EUID" != 0 ] ; then
+   exit 99
+fi
+
+if ! which mkfs.ntfs >/dev/null 2>&1; then
+   echo "mkfs.ntfs not installed; cannot test ntfs."
+   exit 99
+fi
+
+if ! which setfattr >/dev/null 2>&1; then
+   echo "setfattr not installed; cannot test ntfs."
+   exit 99
+fi
+
+"@builddir@/grub-fs-tester" ntfs
+"@builddir@/grub-fs-tester" ntfscomp

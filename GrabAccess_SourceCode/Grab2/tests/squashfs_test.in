@@ -1,0 +1,12 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+if ! which mksquashfs >/dev/null 2>&1; then
+   echo "mksquashfs not installed; cannot test squashfs."
+   exit 99
+fi
+
+"@builddir@/grub-fs-tester" squash4_gzip
+"@builddir@/grub-fs-tester" squash4_xz
+"@builddir@/grub-fs-tester" squash4_lzo

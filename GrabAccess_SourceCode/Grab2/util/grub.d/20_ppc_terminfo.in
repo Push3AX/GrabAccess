@@ -1,0 +1,114 @@
+#! /bin/sh
+set -e
+
+# grub-mkconfig helper script.
+# Copyright (C) 2006,2007,2008,2009,2010  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+libdir=@libdir@
+. "@datadir@/@PACKAGE@/grub-mkconfig_lib"
+
+export TEXTDOMAIN=@PACKAGE@
+export TEXTDOMAINDIR=@localedir@
+
+X=80
+Y=24
+TERMINAL=ofconsole
+
+argument () {
+  opt=$1
+  shift
+
+  if test $# -eq 0; then
+      echo "$0: option requires an argument -- '$opt'" 1>&2
+      exit 1
+  fi
+  echo $1
+}
+
+check_terminfo () {
+
+  while test $# -gt 0
+  do
+    option=$1
+    shift
+
+    case "$option" in
+    terminfo | TERMINFO)
+        ;;
+
+    -g)
+        NEWXY=`argument $option "$@"`
+        NEWX=`echo $NEWXY | cut -d x -f 1`
+        NEWY=`echo $NEWXY | cut -d x -f 2`
+
+        if [ ${NEWX} -ge 80 ] ; then
+          X=${NEWX}
+        else
+          echo "Warning: ${NEWX} is less than the minimum size of 80"
+        fi
+
+        if [ ${NEWY} -ge 24 ] ; then
+          Y=${NEWY}
+        else
+          echo "Warning: ${NEWY} is less than the minimum size of 24"
+        fi
+
+        shift
+        ;;
+
+    *)
+#       # accept console or ofconsole
+#       if [ "$option" != "console" -a "$option" != "ofconsole" ] ; then
+#         echo "Error: GRUB_TERMINFO unknown console: $option"
+#         exit 1
+#       fi
+#       # perfer console
+#       TERMINAL=console
+        # accept ofconsole
+        if [ "$option" != "ofconsole" ] ; then
+          echo "Error: GRUB_TERMINFO unknown console: $option"
+          exit 1
+        fi
+        # perfer console
+        TERMINAL=ofconsole
+        ;;
+    esac
+
+  done
+
+}
+
+if ! uname -m | grep -q ppc ; then
+  exit 0
+fi
+
+if [ "x${GRUB_TERMINFO}" != "x" ] ; then
+  F1=`echo ${GRUB_TERMINFO} | cut -d " " -f 1`
+
+  if [ "${F1}" != "terminfo" ] ; then
+    echo "Error: GRUB_TERMINFO is set to \"${GRUB_TERMINFO}\" The first word should be terminfo."
+    exit 1
+  fi
+
+  check_terminfo ${GRUB_TERMINFO}
+fi
+
+cat << EOF
+  terminfo -g ${X}x${Y} ${TERMINAL}
+EOF

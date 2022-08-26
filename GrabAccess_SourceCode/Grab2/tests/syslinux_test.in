@@ -1,0 +1,16 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+outfile="`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"`" || exit 99
+
+"@builddir@/grub-syslinux2cfg" -r "@abs_top_srcdir@/tests/syslinux/ubuntu10.04" "@abs_top_srcdir@/tests/syslinux/ubuntu10.04/isolinux/isolinux.cfg" -o "$outfile"
+
+echo "$outfile"
+
+if ! diff -u "$outfile" "@builddir@/tests/syslinux/ubuntu10.04_grub.cfg"; then
+  echo "Mismatch in ubuntu10.04"
+  exit 1;
+fi
+
+exit 0

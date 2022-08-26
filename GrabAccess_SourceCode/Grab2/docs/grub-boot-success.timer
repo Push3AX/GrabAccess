@@ -1,0 +1,6 @@
+[Unit]
+Description=Mark boot as successful after the user session has run 2 minutes
+ConditionUser=!@system
+
+[Timer]
+OnActiveSec=2min

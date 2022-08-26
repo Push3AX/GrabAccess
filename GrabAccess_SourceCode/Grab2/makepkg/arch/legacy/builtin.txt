@@ -1,0 +1,1 @@
+biosdisk boot cat chain configfile cpio echo exfat ext2 extcmd fat fb font gzio halt help iso9660 linux linux16 loopback ls lua lzopio memdisk minicmd newc normal ntfs ntldr part_gpt part_msdos search sleep tar test udf xzio

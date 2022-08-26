@@ -1,0 +1,58 @@
+#! @BUILD_SHEBANG@
+# Copyright (C) 2013  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+set -e
+grubshell=@builddir@/grub-shell
+
+. "@builddir@/grub-core/modinfo.sh"
+
+disk=hda
+indisk=ata0
+
+case "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" in
+    # PLATFORM: Don't mess with real devices when OS is active
+    *-emu)
+	exit 77;;
+    # PLATFORM: no ATA on ARC platforms (they use SCSI)
+    *-arc)
+	exit 77;;
+    # QEMU: no ATA on Q35 machine type (they use AHCI)
+    i386-efi)
+	exit 77;;
+    # FIXME: No native drivers are available for those
+    powerpc-ieee1275 | sparc64-ieee1275 | arm*-efi)
+	exit 77;;
+    i386-ieee1275)
+	disk=hdb
+	indisk=ata1
+	;;
+esac
+
+imgfile="`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"`" || exit 99
+outfile="`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"`" || exit 99
+
+echo "hello" > "$outfile"
+
+tar cf "$imgfile" "$outfile"
+
+v=$(echo "nativedisk; source '($indisk)/$outfile';" | "${grubshell}" --qemu-opts="-$disk $imgfile")
+if [ "$v" != "Hello World" ]; then
+   rm "$outfile"
+   exit 1
+fi
+
+rm "$imgfile"
+rm "$outfile"

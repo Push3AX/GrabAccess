@@ -1,0 +1,31 @@
+#! @builddir@/grub-shell-tester
+
+#basic if, execute
+if true; then echo yes; fi
+
+#basic if, no execution
+if false; then echo no; fi
+
+#if else, execute if path
+if true; then echo yes; else echo no; fi
+
+#if else, execute else path
+if false; then echo no; else echo yes; fi
+
+#if elif, execute elif
+if false; then echo no; elif true; then echo yes; fi
+
+#if elif else, execute else
+if false; then echo no; elif false; then echo no; else echo yes; fi
+
+#if elif(1) elif(2), execute elif(2)
+if false; then echo no; elif false; then echo no; elif true; then echo yes; fi
+
+#if elif(1) elif(2) else, execute else
+if false; then echo no; elif false; then echo no; elif false; then echo no; else echo yes; fi
+
+#if {if elif else}, execute elif
+if true; then if false; then echo no; elif true; then echo yes; else echo no; fi; fi
+
+#if {if elif} else, execute elif. ofcourse no dangling-else problem due to "fi"
+if true; then if false; then echo no; elif true; then echo yes; fi; else echo no; fi

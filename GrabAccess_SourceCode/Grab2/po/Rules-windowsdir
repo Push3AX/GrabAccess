@@ -1,0 +1,11 @@
+# generate windowsdir
+
+DISTFILES.common.extra5 = Rules-windowsdir
+
+windowsdir="$(top_builddir)/$(PACKAGE)-$(VERSION)-for-windows"
+windowsdir: $(GMOFILES)
+	test -d "$(windowsdir)/locale" || mkdir "$(windowsdir)/locale"
+	for x in $(CATALOGS); do \
+		test -d "$(windowsdir)/locale/$${x%.gmo}" || mkdir "$(windowsdir)/locale/$${x%.gmo}"; \
+		cp -fp "$(srcdir)/$$x" "$(windowsdir)/locale/$${x%.gmo}/grub.mo"; \
+	done

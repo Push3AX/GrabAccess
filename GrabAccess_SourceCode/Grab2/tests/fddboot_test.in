@@ -1,0 +1,52 @@
+#! @BUILD_SHEBANG@
+# Copyright (C) 2013  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+set -e
+grubshell=@builddir@/grub-shell
+
+. "@builddir@/grub-core/modinfo.sh"
+
+case "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" in
+    # PLATFORM: emu is different
+    *-emu)
+	exit 77;;
+    # PLATFORM: Flash targets
+    i386-qemu | i386-coreboot | mips-qemu_mips | mipsel-qemu_mips)
+	exit 77;;
+    # FIXME: currently grub-shell uses only -kernel for loongson
+    mipsel-loongson)
+	exit 77;;
+    # FIXME: We don't support EFI floppy boot in grub-mkrescue
+    *-efi)
+	exit 77;;
+    # FIXME: no floppy support
+    i386-multiboot)
+	exit 77;;
+    # FIXME: QEMU firmware crashes when trying to boot from floppy
+    sparc64-ieee1275)
+	exit 77;;
+    # FIXME: QEMU doesn't emulate SCSI floppies
+    mipsel-arc | mips-arc)
+	exit 77;;
+    # PLATFORM: powerpc doesn't boot from floppy except OldWorld Macs which we don't support anyway
+    powerpc-ieee1275)
+	exit 77;;
+esac
+
+v=$(echo hello | "${grubshell}" --boot=fd --mkrescue-arg="--compress=xz --fonts= --locales= --themes= -no-pad")
+if [ "$v" != "Hello World" ]; then
+   exit 1
+fi

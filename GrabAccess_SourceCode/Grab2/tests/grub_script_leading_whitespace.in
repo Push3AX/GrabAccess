@@ -1,0 +1,4 @@
+#! @builddir@/grub-shell-tester
+
+list=" 1 2 3"
+echo $list

@@ -1,0 +1,340 @@
+-*- Text -*-
+
+This is the GRUB.  Welcome.
+
+This file contains instructions for compiling and installing the GRUB.
+
+Where this document refers to packages names, they are named according to the
+Debian 11 package repositories. These packages can be found by searching
+https://packages.debian.org/.
+
+The Requirements
+================
+
+GRUB depends on some software packages installed into your system. If
+you don't have any of them, please obtain and install them before
+configuring the GRUB.
+
+* GCC 5.1.0 or later
+  Experimental support for clang 3.8.0 or later (results in much bigger binaries)
+  for i386, x86_64, arm (including thumb), arm64, mips(el), powerpc, sparc64
+* GNU Make
+* GNU Bison 2.3 or later
+* GNU gettext 0.17 or later
+* GNU binutils 2.9.1.0.23 or later
+* Flex 2.5.35 or later
+* pkg-config
+* GNU patch
+* Other standard GNU/Unix tools
+* a libc with large file support (e.g. glibc 2.1 or later)
+
+On GNU/Linux, you also need:
+
+* libdevmapper 1.02.34 or later (recommended)
+
+For optional grub-emu features, you need:
+
+* SDL (recommended)
+* libpciaccess (optional)
+* libusb (optional)
+
+To build GRUB's graphical terminal (gfxterm), you need:
+
+* FreeType 2.1.5 or later
+* GNU Unifont
+
+If you use a development snapshot or want to hack on GRUB you may
+need the following.
+
+* Python 3 (NOTE: python 2.6 should still work, but it's not tested)
+* Autoconf 2.63 or later
+* Automake 1.11 or later
+
+Your distro may package cross-compiling toolchains such as the following
+incomplete list on Debian: gcc-aarch64-linux-gnu, gcc-arm-linux-gnueabihf,
+gcc-mipsel-linux-gnu, and mingw-w64.
+
+More cross compiling toolchains can be found at the following trusted sites:
+
+* https://mirrors.kernel.org/pub/tools/crosstool/
+* https://toolchains.bootlin.com/
+
+Prerequisites for make-check:
+
+* qemu, specifically the binary "qemu-system-ARCH" where ARCH is the
+  architecture GRUB has been built for; the "qemu-system" package on Debian
+  will install all needed qemu architectures
+* OVMF, for EFI platforms (packages ovmf, ovmf-ia32, qemu-efi-arm, and
+  qemu-efi-aarch64)
+* OpenBIOS, for ieee1275 platforms (packages openbios-ppc and openbios-sparc)
+* xorriso 1.2.9 or later, for grub-mkrescue and grub-shell
+* wamerican, for grub-fs-tester
+* mtools, FAT tools for EFI platforms
+
+* If running a Linux kernel the following modules must be loaded:
+  - fuse, loop
+  - btrfs, ext4, f2fs, fat, hfs, hfsplus, jfs, mac-roman, minix, nilfs2,
+    reiserfs, udf, xfs
+  - On newer kernels, the exfat kernel modules may be used instead of the
+    exfat FUSE filesystem
+* The following are Debian named packages required mostly for the full
+  suite of filesystem testing (but some are needed by other tests as well):
+  - btrfs-progs, dosfstools, e2fsprogs, exfatprogs, f2fs-tools, genromfs,
+    hfsprogs, jfsutils, nilfs-tools, ntfs-3g, reiserfsprogs, squashfs-tools,
+    reiserfsprogs, udftools, xfsprogs, zfs-fuse
+  - exfat-fuse, if not using the exfat kernel module
+  - gzip, lzop, xz-utils
+  - attr, cpio, g++, gawk, parted, recode, tar, util-linux
+
+Note that `make check' will run and many tests may complete successfully
+with only a subset of these prerequisites. However, some tests may be
+skipped or fail due to missing prerequisites.
+
+To build the documentation you'll need:
+* texinfo, for the info and html documentation
+* texlive, for building the dvi and pdf documentation (optional)
+
+Configuring the GRUB
+====================
+
+The `configure' shell script attempts to guess correct values for
+various system-dependent variables used during compilation.  It uses
+those values to create a `Makefile' in each directory of the package.
+It may also create one or more `.h' files containing system-dependent
+definitions.  Finally, it creates a shell script `config.status' that
+you can run in the future to recreate the current configuration, a
+file `config.cache' that saves the results of its tests to speed up
+reconfiguring, and a file `config.log' containing compiler output
+(useful mainly for debugging `configure').
+
+If you need to do unusual things to compile the package, please try to
+figure out how `configure' could check whether to do them, and mail
+diffs or instructions to the address given in the `README' so they can
+be considered for the next release.  If at some point `config.cache'
+contains results you don't want to keep, you may remove or edit it.
+
+The file `configure.ac' is used to create `configure' by a program
+called `autoconf'.  You only need `configure.in' if you want to change
+it or regenerate `configure' using a newer version of `autoconf'.
+
+
+Building the GRUB
+=================
+
+The simplest way to compile this package is:
+
+  1. `cd' to the directory containing the package's source code.
+
+  2. Skip this and following step if you use release tarball and proceed to
+     step 4. If you want translations type `./linguas.sh'.
+  
+  3. Type `./bootstrap'.
+
+     The autogen.sh (called by bootstrap) uses python. By default autodetect
+     it, but it can be overridden by setting the PYTHON variable.
+
+  4. Type `./configure' to configure the package for your system.
+     If you're using `csh' on an old version of System V, you might
+     need to type `sh ./configure' instead to prevent `csh' from trying
+     to execute `configure' itself.
+
+     Running `configure' takes awhile.  While running, it prints some
+     messages telling which features it is checking for.
+
+  6. Type `make' to compile the package.
+
+  7. Optionally, type `make check' to run any self-tests that come with
+     the package. Note that many of the tests require root privileges in
+     order to run.
+
+  8. Type `make install' to install the programs and any data files and
+     documentation.
+
+  9. Type `make html' or `make pdf' to generate the html or pdf
+     documentation.  Note, these are not built by default.
+
+ 10. You can remove the program binaries and object files from the
+     source code directory by typing `make clean'.  To also remove the
+     files that `configure' created (so you can compile the package for
+     a different kind of computer), type `make distclean'.  There is
+     also a `make maintainer-clean' target, but that is intended mainly
+     for the package's developers.  If you use it, you may have to get
+     all sorts of other programs in order to regenerate files that came
+     with the distribution.
+
+Cross-compiling the GRUB
+========================
+
+GRUB defines 3 platforms:
+
+  - "Build" is the one which build systems runs on.
+  - "Host" is where you execute GRUB utils.
+  - "Target" is where GRUB itself runs.
+
+For grub-emu host and target must be the same but may differ from build.
+
+If build and host are different make check isn't available.
+
+If build and host are different man pages are not generated.
+
+As an example imagine you have a build system running on FreeBSD on sparc
+which prepares packages for developers running amd64 GNU/Linux laptop and
+they need to make images for ARM board running U-boot. In this case:
+
+build=sparc64-freebsd
+host=amd64-linux-gnu
+target=arm-uboot
+
+For this example the configure line might look like (more details below)
+(some options are optional and included here for completeness but some rarely
+used options are omitted):
+
+  ./configure --host=x86_64-linux-gnu --target=arm-linux-gnueabihf \
+    --with-platform=efi BUILD_CC=gcc BUILD_PKG_CONFIG=pkg-config \
+    HOST_CC=x86_64-linux-gnu-gcc HOST_CFLAGS='-g -O2' \
+    PKG_CONFIG=x86_64-linux-gnu-pkg-config TARGET_CC=arm-linux-gnueabihf-gcc \
+    TARGET_CFLAGS='-Os -march=armv8.3-a' TARGET_CCASFLAGS='-march=armv8.3-a' \
+    TARGET_OBJCOPY=arm-linux-gnueabihf-objcopy \
+    TARGET_STRIP=arm-linux-gnueabihf-strip TARGET_NM=arm-linux-gnueabihf-nm \
+    TARGET_RANLIB=arm-linux-gnueabihf-ranlib LEX=flex
+
+Normally, for building a GRUB on amd64 with tools to run on amd64 to
+generate images to run on ARM, using your Linux distribution's
+packaged cross compiler, the following would suffice:
+
+  ./configure --target=arm-linux-gnueabihf --with-platform=efi
+
+You need to use following options to specify tools and platforms. For minimum
+version look at prerequisites. All tools not mentioned in this section under
+corresponding platform are not needed for the platform in question.
+
+  - For build
+    1. BUILD_CC= to gcc able to compile for build. This is used, for
+       example, to compile build-gentrigtables which is then run to
+       generate sin and cos tables.
+    2. BUILD_CFLAGS= for C options for build.
+    3. BUILD_CPPFLAGS= for C preprocessor options for build.
+    4. BUILD_LDFLAGS= for linker options for build.
+    5. BUILD_PKG_CONFIG= for pkg-config for build (optional).
+
+  - For host
+    1. --host= to autoconf name of host.
+    2. CC= for gcc able to compile for host.
+    3. CFLAGS= for C options for host.
+    4. HOST_CC= for gcc able to compile for host.
+    5. HOST_CFLAGS= for C options for host.
+    6. HOST_CPPFLAGS= for C preprocessor options for host.
+    7. HOST_LDFLAGS= for linker options for host.
+    8. PKG_CONFIG= for pkg-config for host (optional).
+    9. Libdevmapper if any must be in standard linker folders (-ldevmapper) (optional).
+    10. Libfuse if any must be in standard linker folders (-lfuse) (optional).
+    11. Libzfs if any must be in standard linker folders (-lzfs) (optional).
+    12. Liblzma if any must be in standard linker folders (-llzma) (optional).
+    Note: The HOST_* variables override not prefixed variables.
+
+  - For target
+    1. --target= to autoconf cpu name of target.
+    2. --with-platform to choose firmware.
+    3. TARGET_CC= for gcc able to compile for target.
+    4. TARGET_CFLAGS= for C options for target.
+    5. TARGET_CPPFLAGS= for C preprocessor options for target.
+    6. TARGET_CCASFLAGS= for assembler options for target.
+    7. TARGET_LDFLAGS= for linker options for target.
+    8. TARGET_OBJCOPY= for objcopy for target.
+    9. TARGET_STRIP= for strip for target.
+    10. TARGET_NM= for nm for target.
+    11. TARGET_RANLIB= for ranlib for target.
+    Note: If the TARGET_* variables are not specified then they will default
+          to be the same as the host variables. If host variables are not
+          specified then the TARGET_* variables will default to be the same
+          as not prefixed variables.
+
+  - Additionally for emu, for host and target.
+    1. SDL is looked for in standard linker directories (-lSDL) (optional)
+    2. libpciaccess is looked for in standard linker directories (-lpciaccess) (optional)
+    3. libusb is looked for in standard linker directories (-lusb) (optional)
+
+  - Platform-agnostic tools and data.
+    1. make is the tool you execute after ./configure.
+    2. Bison is specified in YACC= variable
+    3. Flex is specified in LEX= variable
+    4. GNU unifont and Djvu sans are looked for in standard directories.
+
+Compiling For Multiple Architectures
+====================================
+
+You can compile the package for more than one kind of computer at the
+same time, by placing the object files for each architecture in their
+own directory.  `cd' to the directory where you want the object files
+and executables to go and run the `configure' script.  `configure'
+automatically checks for the source code in the directory that
+`configure' is in and in `..'.
+
+
+Installation Names
+==================
+
+By default, `make install' will install the package's files in
+`/usr/local/bin', `/usr/local/man', etc.  You can specify an
+installation prefix by giving `configure' the option `--prefix=PATH'.
+
+You can specify separate installation prefixes for
+architecture-specific files and architecture-independent files.  If
+you give `configure' the option `--exec-prefix=PATH', the package will
+use PATH as the prefix for installing programs and libraries.
+Documentation and other data files will still use the regular prefix.
+
+In addition, if you use an unusual directory layout you can give
+options like `--bindir=PATH' to specify different values for
+particular kinds of files.  Run `configure --help' for a list of the
+directories you can set and what kinds of files go in them.
+
+If the package supports it, you can cause programs to be installed
+with an extra prefix or suffix on their names by giving `configure'
+the option `--program-prefix=PREFIX' or `--program-suffix=SUFFIX'.
+
+Please note, however, that the GRUB knows where it is located in the
+filesystem.  If you have installed it in an unusual location, the
+system might not work properly, or at all.  The chief utility of these
+options for the GRUB is to allow you to "install" in some alternate
+location, and then copy these to the actual root filesystem later.
+
+
+Sharing Defaults
+================
+
+If you want to set default values for `configure' scripts to share,
+you can create a site shell script called `config.site' that gives
+default values for variables like `CC', `cache_file', and `prefix'.
+`configure' looks for `PREFIX/share/config.site' if it exists, then
+`PREFIX/etc/config.site' if it exists.  Or, you can set the
+`CONFIG_SITE' environment variable to the location of the site script.
+A warning: not all `configure' scripts look for a site script.
+
+
+Operation Controls
+==================
+
+   `configure' recognizes the following options to control how it
+operates.
+
+`--cache-file=FILE'
+     Use and save the results of the tests in FILE instead of
+     `./config.cache'.  Set FILE to `/dev/null' to disable caching, for
+     debugging `configure'.
+
+`--help'
+     Print a summary of the options to `configure', and exit.
+
+`--quiet'
+`--silent'
+`-q'
+     Do not print messages saying which checks are being made.
+
+`--srcdir=DIR'
+     Look for the package's source code in directory DIR.  Usually
+     `configure' can determine that directory automatically.
+
+`--version'
+     Print the version of Autoconf used to generate the `configure'
+     script, and exit.

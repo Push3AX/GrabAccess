@@ -1,0 +1,40 @@
+#!@BUILD_SHEBANG@
+
+# User-controllable options
+grub_modinfo_target_cpu=@target_cpu@
+grub_modinfo_platform=@platform@
+grub_disk_cache_stats=@DISK_CACHE_STATS@
+grub_boot_time_stats=@BOOT_TIME_STATS@
+grub_have_font_source=@HAVE_FONT_SOURCE@
+
+# Autodetected config
+grub_have_asm_uscore=@HAVE_ASM_USCORE@
+grub_bss_start_symbol="@BSS_START_SYMBOL@"
+grub_end_symbol="@END_SYMBOL@"
+
+# Build environment
+grub_target_cc='@TARGET_CC@'
+grub_target_cc_version='@TARGET_CC_VERSION@'
+grub_target_cflags='@TARGET_CFLAGS@'
+grub_target_cppflags='@TARGET_CPPFLAGS@'
+grub_target_ccasflags='@TARGET_CCASFLAGS@'
+grub_target_ldflags='@TARGET_LDFLAGS@'
+grub_cflags='@CFLAGS@'
+grub_cppflags='@CPPFLAGS@'
+grub_ccasflags='@CCASFLAGS@'
+grub_ldflags='@LDFLAGS@'
+grub_target_strip='@TARGET_STRIP@'
+grub_target_nm='@TARGET_NM@'
+grub_target_ranlib='@TARGET_RANLIB@'
+grub_target_objconf='@TARGET_OBJCONV@'
+grub_target_obj2elf='@TARGET_OBJ2ELF@'
+grub_target_img_base_ldopt='@TARGET_IMG_BASE_LDOPT@'
+grub_target_img_ldflags='@TARGET_IMG_BASE_LDFLAGS@'
+
+# Version
+grub_version="@VERSION@"
+grub_package="@PACKAGE@"
+grub_package_string="@PACKAGE_STRING@"
+grub_package_version="@PACKAGE_VERSION@"
+grub_package_name="@PACKAGE_NAME@"
+grub_package_bugreport="@PACKAGE_BUGREPORT@"

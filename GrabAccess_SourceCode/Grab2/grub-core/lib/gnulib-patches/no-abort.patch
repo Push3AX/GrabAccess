@@ -1,0 +1,26 @@
+diff --git a/lib/regcomp.c b/lib/regcomp.c
+index cc85f35ac..de45ebb5c 100644
+--- a/lib/regcomp.c
++++ b/lib/regcomp.c
+@@ -528,9 +528,9 @@ regerror (int errcode, const regex_t *__restrict preg, char *__restrict errbuf,
+        to this routine.  If we are given anything else, or if other regex
+        code generates an invalid error code, then the program has a bug.
+        Dump core so we can fix it.  */
+-    abort ();
+-
+-  msg = gettext (__re_error_msgid + __re_error_msgid_idx[errcode]);
++    msg = gettext ("unknown regexp error");
++  else
++    msg = gettext (__re_error_msgid + __re_error_msgid_idx[errcode]);
+ 
+   msg_size = strlen (msg) + 1; /* Includes the null.  */
+ 
+@@ -1136,7 +1136,7 @@ optimize_utf8 (re_dfa_t *dfa)
+ 	}
+ 	break;
+       default:
+-	abort ();
++	break;
+       }
+ 
+   if (mb_chars || has_period)

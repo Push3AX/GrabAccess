@@ -1,0 +1,68 @@
+#! @BUILD_SHEBANG@
+set -e
+
+# create a randome file
+empty="`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"`" || exit 99
+non_empty="`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"`" || exit 99
+cat >$non_empty <<EOF
+hello world!
+EOF
+
+. "@builddir@/grub-core/modinfo.sh"
+
+if [ x"${grub_modinfo_platform}" = xemu ]; then
+    grub_empty="(host)$empty"
+    grub_non_empty="(host)$non_empty"
+    grub_dir="(host)${TMPDIR:-/tmp}"
+else
+    grub_empty="/boot/empty"
+    grub_non_empty="/boot/non_empty"
+    grub_dir="/boot/grub"
+fi
+
+
+outfile="`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"`" || exit 99
+@builddir@/grub-shell --files=$grub_empty=$empty  --files=$grub_non_empty=$non_empty>$outfile <<EOF
+if ! test -f $grub_empty; then
+  echo FAIL1
+fi
+if ! test -e $grub_empty; then
+  echo FAIL2
+fi
+if test -d $grub_empty; then
+  echo FAIL3
+fi
+if ! test -d $grub_dir; then
+  echo FAIL4
+fi
+if test -s $grub_empty; then
+  echo FAIL5
+fi
+if ! test -s $grub_non_empty; then
+  echo FAIL6
+fi
+if test -f $grub_empty -a foo = bar; then
+  echo FAIL7
+fi
+if test -e $grub_empty -a foo = bar; then
+  echo FAIL8
+fi
+if test -s $grub_non_empty -a foo = bar; then
+  echo FAIL9
+fi
+if test -d $grub_dir -a foo = bar; then
+  echo FAIL10
+fi
+
+EOF
+
+rm -f "$empty" "$non_empty"
+
+if grep FAIL "$outfile" > /dev/null 2>&1; then
+    echo "GRUB test command file tests failed."
+    cat "$outfile"
+    exit 1
+else
+    rm -f "${outfile}"
+    exit 0
+fi

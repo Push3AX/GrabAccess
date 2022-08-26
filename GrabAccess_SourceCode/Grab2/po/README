@@ -1,0 +1,24 @@
+
+If you checked out this source tree directly from GRUB Git, you might be
+wondering where are the POT and PO files.  Here are some instructions
+that will hopefully clarify the situation.
+
+  - If you're a user or a distributor, simply fill the po directory by
+    importing translations from the Translation Project:
+
+    	 ./linguas.sh
+
+    GRUB's build system will automatically detect those and include them
+    in your install.
+
+  - If you're a translator and want to add a new translation or improve an
+    existing one, get in touch with the Translation Project
+    (http://translationproject.org/).  The GRUB project doesn't interact
+    with translators directly (but we dearly appreciate your work!).
+
+  - If you're a developer adding/removing/modifying translatable strings,
+    you can check that these turn into a sane POT file by using the
+    `po/grub.pot' make rule.
+
+  - If you're the maintainer of GNU GRUB preparing a new release, don't
+    forget to include the latest PO files in your source tarball!

@@ -1,0 +1,134 @@
+#! @builddir@/grub-shell-tester
+
+# Run GRUB script in a Qemu instance
+# Copyright (C) 2010  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+function f1 {
+    return
+    echo one
+}
+f1
+
+function f2 {
+    true
+    return
+    echo one
+}
+if f2; then echo true; else echo false; fi
+
+function f3 {
+    false
+    return
+    echo one
+}
+if f3; then echo true; else echo false; fi
+
+function f4 {
+    true
+    return 1;
+    echo one
+}
+if f4; then echo true; else echo false; fi
+
+function f5 {
+    false
+    return 0;
+    echo one
+}
+if f5; then echo true; else echo false; fi
+
+function f6 {
+    echo one
+    if true; then
+	echo two
+	return 0
+    else
+	echo three
+	return 1
+    fi
+    echo four
+}
+if f6; then echo true; else echo false; fi
+
+function f7 {
+    if return 1; then
+	echo one
+    else
+	echo no
+    fi
+}
+if f7; then echo true; else echo false; fi
+
+function f8 {
+    echo one
+    for v in 1 2 3 4 5; do
+	echo $v
+	if test $v = 3; then return 1; fi
+    done
+    echo two
+}
+if f8; then echo true; else echo false; fi
+
+function f9 {
+    x=1
+    echo one
+    until test x = 11111111; do
+	echo $x
+	x="1$x"
+	if test $x = 1111; then return 0; fi
+    done
+    echo two
+}
+if f9; then echo true; else echo false; fi
+
+function f10 {
+    echo one
+    while return 0; do
+	echo two
+    done
+    echo three
+}
+if f10; then echo true; else echo false; fi
+
+function f11 {
+    f1
+    f2
+    f3
+    f4
+    f5
+    f6
+    f7
+    f8
+    f9
+    f10
+}
+if f11; then echo true; else echo false; fi
+
+function f12 {
+    echo one
+    f11
+    return 1
+    echo two
+}
+if f12; then echo true; else echo false; fi
+
+function f13 {
+    echo one
+    f12
+    echo two
+    return 0
+}
+if f13; then echo true; else echo false; fi

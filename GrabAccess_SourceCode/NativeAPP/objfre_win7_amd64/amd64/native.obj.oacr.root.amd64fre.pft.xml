@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DEFECTS>
+<OACRDEFECTCOUNT>1</OACRDEFECTCOUNT>
+<OACRERRORCOUNT>0</OACRERRORCOUNT>
+<DEFECT _seq="1"><SFA><LINE>77</LINE><COLUMN>5</COLUMN><FILENAME>native.c</FILENAME><FILEPATH>c:\users\administrator\desktop\grabaccess\grabaccess_sourcecode_v1.0.0\windowsnativeapp\</FILEPATH></SFA><DEFECTCODE>28197</DEFECTCODE><DESCRIPTION>Possibly leaking memory 'pMem'.</DESCRIPTION><FUNCTION>free</FUNCTION><FUNCLINE>77</FUNCLINE><PATH><SFA><LINE>79</LINE><COLUMN>12</COLUMN><FILENAME>native.c</FILENAME><FILEPATH>c:\users\administrator\desktop\grabaccess\grabaccess_sourcecode_v1.0.0\windowsnativeapp\</FILEPATH></SFA></PATH></DEFECT>
+</DEFECTS>

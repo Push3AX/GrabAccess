@@ -1,0 +1,36 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% GRUB2 gfxmenu default theme by Daniel Tschudi %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Version history:
+
+	0.99: first test release 
+
+Introduction:
+	
+	This shall be the default theme for the GRUB2. As the theme format seems  to be more stable then before, there is hope that this theme will work 	
+	in future version of GRUB2 as well.
+
+Usage:	
+	
+	The font (c.f. theme.txt) required by this theme are not supplied with it,
+	as they should be generated out of the newest available version at compile time.
+
+Remarks: 
+
+	All images of the theme have been made by the author using GIMP.
+
+	This theme does not contain any text in a fixed language. 
+
+	As soon as gfxmenu allows it, this theme should be updated to support localised layouts, such as different position for the scrollbar depending on reading direction. 
+
+	In order to speed up the loading process on smaller resolutions, the starfield.png might be converted in to .jpeg images of different resolution.
+
+	This theme is inspired by the work and themes of Jo Shields. 
+
+	Do not not use the m-word near the ape, ook!
+	 
+
+Copyright & Licensing:
+
+	Please see the COPYING file

@@ -1,0 +1,4 @@
+# This catalog in addition to fixing quoting like en@quot translates the
+# messages into Pig Latin. Can be useful for testing that all strings are
+# marked even before any translation is available or without knowing any
+# specific language besides English.

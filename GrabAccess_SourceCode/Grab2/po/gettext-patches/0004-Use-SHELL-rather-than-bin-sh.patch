@@ -1,0 +1,26 @@
+From f36f12e77798223ee7ee882c0d09e0e63db11454 Mon Sep 17 00:00:00 2001
+From: Colin Watson <cjwatson@debian.org>
+Date: Sun, 1 Mar 2020 12:14:07 +0000
+Subject: [PATCH 4/4] Use @SHELL rather than /bin/sh
+
+/bin/sh might not exist.
+---
+ gettext-runtime/po/Makefile.in.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gettext-runtime/po/Makefile.in.in b/gettext-runtime/po/Makefile.in.in
+index f3ef54c39..285a55a9d 100644
+--- a/gettext-runtime/po/Makefile.in.in
++++ b/gettext-runtime/po/Makefile.in.in
+@@ -16,7 +16,7 @@ VERSION = @VERSION@
+ PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
+ 
+ SED = @SED@
+-SHELL = /bin/sh
++SHELL = @SHELL@
+ @SET_MAKE@
+ 
+ srcdir = @srcdir@
+-- 
+2.17.1
+

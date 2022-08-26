@@ -1,0 +1,3 @@
+#        size   offset    fstype   [fsize bsize bps/cpg]
+  a:      256        0    4.2BSD        0     0     1 
+  c:      256        0    unused        0     0         # "raw" part, don't edit

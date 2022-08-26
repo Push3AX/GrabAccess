@@ -1,0 +1,25 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+if [ "x$EUID" = "x" ] ; then
+  EUID=`id -u`
+fi
+
+if [ "$EUID" != 0 ] ; then
+   exit 99
+fi
+
+if ! which mkfs.btrfs >/dev/null 2>&1; then
+   echo "mkfs.btrfs not installed; cannot test btrfs."
+   exit 99
+fi
+
+"@builddir@/grub-fs-tester" btrfs
+"@builddir@/grub-fs-tester" btrfs_zlib
+"@builddir@/grub-fs-tester" btrfs_lzo
+"@builddir@/grub-fs-tester" btrfs_zstd
+"@builddir@/grub-fs-tester" btrfs_raid0
+"@builddir@/grub-fs-tester" btrfs_raid1
+"@builddir@/grub-fs-tester" btrfs_single
+"@builddir@/grub-fs-tester" btrfs_raid10

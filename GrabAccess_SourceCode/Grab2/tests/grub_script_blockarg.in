@@ -1,0 +1,42 @@
+#! @BUILD_SHEBANG@
+set -e
+
+# Run GRUB script in a Qemu instance
+# Copyright (C) 2010  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+error_if_not () {
+    if test "$1" != "$2"; then
+	echo "[$1]" != "[$2]"
+	exit 1
+    fi
+}
+
+cmd='test_blockarg { true }'
+v=`echo "$cmd" | @builddir@/grub-shell`
+error_if_not "$v" '{ true }'
+
+tmp=`mktemp "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"` || exit 99
+cmd='test_blockarg { test_blockarg { true } }'
+echo "$cmd" | @builddir@/grub-shell >$tmp
+error_if_not "`head -n1 $tmp|tail -n1`" '{ test_blockarg { true } }'
+error_if_not "`head -n2 $tmp|tail -n1`" '{ true }'
+
+cmd='test_blockarg { test_blockarg { test_blockarg { true } }; test_blockarg { true } }'
+echo "$cmd" | @builddir@/grub-shell >$tmp
+error_if_not "`head -n1 $tmp|tail -n1`" '{ test_blockarg { test_blockarg { true } }; test_blockarg { true } }'
+error_if_not "`head -n2 $tmp|tail -n1`" '{ test_blockarg { true } }'
+error_if_not "`head -n3 $tmp|tail -n1`" '{ true }'
+error_if_not "`head -n4 $tmp|tail -n1`" '{ true }'

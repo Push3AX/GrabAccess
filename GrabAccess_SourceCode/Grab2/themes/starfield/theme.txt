@@ -1,0 +1,79 @@
+# Default theme for GRUB2
+#
+# Copyright (C) 2011 Daniel Tschudi
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+#general settings
+message-font: "DejaVu Sans Regular 12"
+message-color: "#000"
+message-bg-color: "#fff"
+terminal-box: "terminal_box_*.png"
+terminal-font: "DejaVu Sans Regular 12"
+desktop-image: "starfield.png"
+
+#help bar at the bottom
++ label {
+	top = 100%-25
+	left = 0
+	width = 100%
+	height = 20
+	text = "@KEYMAP_MIDDLE@"
+	align = "center"
+	font = "DejaVu Sans Regular 10"
+	color = "#FFF"
+}
+
+#boot menu
++ boot_menu {
+	left = 10%
+	width = 80%
+	top = 20%
+	height = 50%	
+	item_font = "DejaVu Sans Regular 12"
+	item_color = "#000"
+	selected_item_font = "DejaVu Sans Bold 14"
+	selected_item_color= "#000"
+	selected_item_pixmap_style = "blob_*.png"
+	icon_height = 25
+	icon_width = 25
+	item_height = 26
+	item_padding = 0
+	item_icon_space = 0
+	item_spacing = 1
+	scrollbar = true
+	scrollbar_width = 20
+	scrollbar_thumb = "slider_*.png"
+	menu_pixmap_style = "boot_menu_*.png"
+}
+
+#progress bar
++ progress_bar {
+	id = "__timeout__"
+	left = 15%
+	top = 80%
+	height = 20
+	width = 70%
+	font = "DejaVu Sans Regular 12"
+	text_color = "#000"
+	fg_color = "#fff"
+	bg_color = "#6ac"
+	border_color = "#fff"
+	text = "@TIMEOUT_NOTIFICATION_LONG@"
+}

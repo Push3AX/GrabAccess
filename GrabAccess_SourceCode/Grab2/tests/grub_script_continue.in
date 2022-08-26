@@ -1,0 +1,86 @@
+#! @builddir@/grub-shell-tester
+#
+# Copyright (C) 2010  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+# continue without any arguments
+for i in 1 2 3 4 5 6 7 8 9 10
+do
+  if test "$i" = 5
+  then
+    continue
+  fi
+  echo $i
+done
+
+# continue with one
+for i in 1 2 3 4 5 6 7 8 9 10
+do
+  if test "$i" = 5
+  then
+    continue 1
+  fi
+  echo $i
+done
+
+# continue with loop count
+for i in 1 2 3 4 5
+do
+  for j in a b c d e f
+  do
+    if test "$i" = 3
+    then
+      if test "$j" = d
+      then
+        continue 2
+      fi
+      echo "$i $j"
+    fi
+  done
+done
+
+# continue into middle loop
+for i in 1 2 3 4 5
+do
+  for j in a b c d e f
+  do
+    if test "$i" = 3
+    then
+      if test "$j" = d
+      then
+        continue 1
+      fi
+      echo "$i $j"
+    fi
+  done
+done
+
+# while and until loops
+a=
+while test "$a" != "aaaaaaa"
+do
+  a="a$a"
+  for i in 1 2 3 4
+  do
+    b=
+    until test "$b" = "bbbbb"
+    do
+      b="b$b"
+      if test "$i" = 3; then echo "continue 2"; continue 2; fi
+      echo "$a $i $b"
+    done
+  done
+done
+

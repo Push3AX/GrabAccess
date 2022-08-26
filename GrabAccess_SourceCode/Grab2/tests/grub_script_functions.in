@@ -1,0 +1,147 @@
+#! @builddir@/grub-shell-tester
+
+# Run GRUB script in a Qemu instance
+# Copyright (C) 2010  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+echo parameter count
+function fcount {
+  echo fcount "$#"
+}
+
+fcount
+fcount a
+fcount a b
+
+echo parameter count, with nesting
+function ffcount {
+  echo ffcount "$#"
+  fcount
+  fcount a
+  fcount a b
+}
+
+ffcount
+ffcount 1
+ffcount 1 2
+
+echo parameters
+function fparam {
+  echo fparam 1 $1
+  echo fparam 2 $2
+  echo fparam 3 $3
+}
+
+fparam
+fparam a
+fparam a b
+
+echo parameters, with nesting
+function ffparam {
+  echo ffparam 1 $1
+  echo ffparam 2 $2
+  echo ffparam 3 $3
+  fparam
+  fparam a
+  fparam a b
+}
+
+ffparam
+ffparam 1
+ffparam 1 2
+
+echo parameter expansion with specials
+function fstar {
+  for f in $*
+  do
+    echo fstar $f
+  done
+
+  for f in aaa$*bbb
+  do
+    echo fstar $f
+  done
+}
+
+fstar
+fstar a
+fstar a "1 2"
+fstar a "1 2" b
+
+function fdqstar {
+  for f in "$*"
+  do
+    echo fdqstar $f
+  done
+
+  for f in aaa"$*"bbb
+  do
+    echo fdqstar $f
+  done
+
+  for f in "aaa$*bbb"
+  do
+    echo fdqstar $f
+  done
+}
+
+fdqstar
+fdqstar a
+fdqstar a "1 2"
+fdqstar a "1 2" b
+
+function fat {
+  for f in $@
+  do
+    echo fat $f
+  done
+
+  for f in aaa$@bbb
+  do
+    echo fat $f
+  done
+}
+
+fat
+fat a
+fat a "1 2"
+fat a "1 2" b
+fat a "1 2" b "c d"
+fat a "1 2" b "c d" e
+
+function fdqat {
+  for f in "$@"
+  do
+    echo fdqat $f
+  done
+
+  for f in aaa"$@"bbb
+  do
+    echo fdqat $f
+  done
+
+  for f in "aaa$@bbb"
+  do
+    echo fdqat $f
+  done
+}
+
+# fdqat # this case needs special handling, lets ignore till we really need it.
+fdqat a
+fdqat a "1 2"
+fdqat a "1 2" b
+fdqat a "1 2" b "c d"
+fdqat a "1 2" b "c d" e
+

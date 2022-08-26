@@ -1,0 +1,6 @@
+#! @BUILD_SHEBANG@
+set -e
+
+@builddir@/grub-script-check << EOF
+echo "\\\$"
+EOF

@@ -1,0 +1,18 @@
+#! @builddir@/grub-shell-tester
+
+x=1\\,1
+echo $x
+y='$'
+echo $y
+z='\'
+echo $z
+t='\*'
+echo $t
+u='$'
+echo $u
+v='\?'
+echo $v
+
+
+echo \\
+

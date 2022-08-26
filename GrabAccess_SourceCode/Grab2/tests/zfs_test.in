@@ -1,0 +1,27 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+if [ "x$EUID" = "x" ] ; then
+  EUID=`id -u`
+fi
+
+if [ "$EUID" != 0 ] ; then
+   exit 99
+fi
+
+if ! which zpool >/dev/null 2>&1; then
+   echo "zpool not installed; cannot test zfs."
+   exit 99
+fi
+
+"@builddir@/grub-fs-tester" zfs
+"@builddir@/grub-fs-tester" zfs_lzjb
+"@builddir@/grub-fs-tester" zfs_gzip
+"@builddir@/grub-fs-tester" zfs_zle
+"@builddir@/grub-fs-tester" zfs_raidz3
+"@builddir@/grub-fs-tester" zfs_raidz2
+"@builddir@/grub-fs-tester" zfs_raidz
+"@builddir@/grub-fs-tester" zfs_mirror
+"@builddir@/grub-fs-tester" zfs_stripe
+"@builddir@/grub-fs-tester" zfs_caseins

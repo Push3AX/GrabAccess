@@ -1,0 +1,7 @@
+GRUB team is aware of following problems:
+  - Currently search and assembling multidevice abstractions scans
+    all the devices which can be slow.
+  - Cache isn't used correctly for video which results in slowness.
+
+While these are bugs their solution has a potential of breaking more and more
+seriously. So it was decided for 1.99 that they aren't fixed.

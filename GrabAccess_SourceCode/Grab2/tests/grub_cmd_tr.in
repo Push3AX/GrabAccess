@@ -1,0 +1,62 @@
+#! @BUILD_SHEBANG@ -e
+
+# Run GRUB script in a Qemu instance
+# Copyright (C) 2010  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+#
+# Translating a string argument
+#
+cmd='tr 12345 abcde a1b2c3d4e5'
+v=`echo "$cmd" | @builddir@/grub-shell`
+if test "$v" != aabbccddee; then echo "error: $cmd [$v]" >&2; exit 1; fi
+
+cmd='tr -U abcdABCD'
+v=`echo "$cmd" | @builddir@/grub-shell`
+if test "$v" != ABCDABCD; then echo "error: $cmd [$v]" >&2; exit 1; fi
+
+cmd='tr -D ABCDabcd'
+v=`echo "$cmd" | @builddir@/grub-shell`
+if test "$v" != abcdabcd; then echo "error: $cmd [$v]" >&2; exit 1; fi
+
+#
+# Translating a variable value
+#
+cmd='foo=12345678; tr -s foo 1234 abcd; echo $foo'
+v=`echo "$cmd" | @builddir@/grub-shell`
+if test "$v" != abcd5678; then echo "error: $cmd [$v]" >&2; exit 1; fi
+
+cmd='foo=abcdEFGH; tr -U -s foo; echo $foo'
+v=`echo "$cmd" | @builddir@/grub-shell`
+if test "$v" != ABCDEFGH; then echo "error: $cmd [$v]" >&2; exit 1; fi
+
+cmd='foo=abcdEFGH; tr -D -s foo; echo $foo'
+v=`echo "$cmd" | @builddir@/grub-shell`
+if test "$v" != abcdefgh; then echo "error: $cmd [$v]" >&2; exit 1; fi
+
+#
+# Setting a variable from string argument
+#
+cmd='foo=12345678; tr -s foo 1234 abcd a1b2c3d4e5; echo $foo'
+v=`echo "$cmd" | @builddir@/grub-shell`
+if test "$v" != aabbccdde5; then echo "error: $cmd [$v]" >&2; exit 1; fi
+
+cmd='foo=abcdEFGH; tr -U -s foo xyz; echo $foo'
+v=`echo "$cmd" | @builddir@/grub-shell`
+if test "$v" != XYZ; then echo "error: $cmd [$v]" >&2; exit 1; fi
+
+cmd='foo=abcdEFGH; tr -D -s foo XYZ; echo $foo'
+v=`echo "$cmd" | @builddir@/grub-shell`
+if test "$v" != xyz; then echo "error: $cmd [$v]" >&2; exit 1; fi

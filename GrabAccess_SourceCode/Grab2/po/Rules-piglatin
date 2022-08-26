@@ -1,0 +1,41 @@
+# Special Makefile rules for Pig Latin message catalogs with quotation marks.
+
+DISTFILES.common.extra3 = piglatin.sed en@piglatin.header insert-header.sin Rules-piglatin
+
+.SUFFIXES: .insert-header .po-update-en-piglatin
+
+en@piglatin.po-create:
+	$(MAKE) en@piglatin.po-update
+
+en@piglatin.po-update: en@piglatin.po-update-en
+
+.insert-header.po-update-en-piglatin:
+	@lang=`echo $@ | sed -e 's/\.po-update-en-piglatin$$//'`; \
+	if test "$(PACKAGE)" = "gettext"; then PATH=`pwd`/../src:$$PATH; GETTEXTLIBDIR=`cd $(top_srcdir)/src && pwd`; export GETTEXTLIBDIR; fi; \
+	tmpdir=`pwd`; \
+	echo "$$lang:"; \
+	ll=`echo $$lang | sed -e 's/@.*//'`; \
+	LC_ALL=C; export LC_ALL; \
+	cd $(srcdir); \
+	if $(MSGINIT) -i $(DOMAIN).pot --no-translator -l $$lang -o - 2>/dev/null | sed -f $$tmpdir/$$lang.insert-header | $(MSGCONV) -t UTF-8 | $(MSGFILTER) sed -f `echo $$lang | sed -e 's/.*@//'`.sed 2>/dev/null > $$tmpdir/$$lang.new.po; then \
+	  if cmp $$lang.po $$tmpdir/$$lang.new.po >/dev/null 2>&1; then \
+	    rm -f $$tmpdir/$$lang.new.po; \
+	  else \
+	    if mv -f $$tmpdir/$$lang.new.po $$lang.po; then \
+	      :; \
+	    else \
+	      echo "creation of $$lang.po failed: cannot move $$tmpdir/$$lang.new.po to $$lang.po" 1>&2; \
+	      exit 1; \
+	    fi; \
+	  fi; \
+	else \
+	  echo "creation of $$lang.po failed!" 1>&2; \
+	  rm -f $$tmpdir/$$lang.new.po; \
+	fi
+
+en@piglatin.insert-header: insert-header.sin
+	sed -e '/^#/d' -e 's/HEADER/en@piglatin.header/g' $(srcdir)/insert-header.sin > en@piglatin.insert-header
+
+mostlyclean: mostlyclean-piglatin
+mostlyclean-piglatin:
+	rm -f *.insert-header

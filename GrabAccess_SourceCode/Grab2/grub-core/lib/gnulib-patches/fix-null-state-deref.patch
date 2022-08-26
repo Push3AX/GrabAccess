@@ -1,0 +1,12 @@
+--- a/lib/argp-help.c	2020-10-28 14:32:19.189215988 +0000
++++ b/lib/argp-help.c	2020-10-28 14:38:21.204673940 +0000
+@@ -145,7 +145,8 @@
+       if (*(int *)((char *)upptr + up->uparams_offs) >= upptr->rmargin)
+         {
+           __argp_failure (state, 0, 0,
+-                          dgettext (state->root_argp->argp_domain,
++                          dgettext (state == NULL ? NULL
++                                    : state->root_argp->argp_domain,
+                                     "\
+ ARGP_HELP_FMT: %s value is less than or equal to %s"),
+                           "rmargin", up->name);

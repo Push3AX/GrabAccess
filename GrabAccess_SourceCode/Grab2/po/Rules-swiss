@@ -1,0 +1,7 @@
+# Special Makefile rules for transforming German typography into Swiss one.
+
+DISTFILES.common.extra2 = swiss.sed Rules-swiss
+
+de_CH.po-create: de.po swiss.sed
+	LC_ALL=C.UTF-8 $(MSGFILTER) -i $< -o $(srcdir)/de_CH.po sed -f $(srcdir)/swiss.sed
+

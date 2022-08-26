@@ -1,0 +1,137 @@
+#! /bin/sh
+#
+# Set a default boot entry for GRUB.
+# Copyright (C) 2004,2009  Free Software Foundation, Inc.
+#
+# GRUB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GRUB is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+
+# Initialize some variables.
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sysconfdir="@sysconfdir@"
+PACKAGE_NAME=@PACKAGE_NAME@
+PACKAGE_VERSION=@PACKAGE_VERSION@
+datarootdir="@datarootdir@"
+datadir="@datadir@"
+if [ "x$pkgdatadir" = x ]; then
+    pkgdatadir="${datadir}/@PACKAGE@"
+fi
+
+self=`basename $0`
+
+grub_editenv=${bindir}/@grub_editenv@
+rootdir=
+bootdir=
+grubdir=`echo "/@bootdirname@/@grubdirname@" | sed 's,//*,/,g'`
+
+export TEXTDOMAIN=@PACKAGE@
+export TEXTDOMAINDIR="@localedir@"
+
+. "${pkgdatadir}/grub-mkconfig_lib"
+
+# Usage: usage
+# Print the usage.
+usage () {
+    gettext_printf "Usage: %s [OPTION] MENU_ENTRY\n" "$self"
+    gettext "Set the default boot menu entry for GRUB."; echo
+    gettext_printf "This requires setting GRUB_DEFAULT=saved in %s/default/grub.\n" "$sysconfdir"
+    echo
+    print_option_help "-h, --help" "$(gettext "print this message and exit")"
+    print_option_help "-V, --version" "$(gettext "print the version information and exit")"
+    dirmsg="$(gettext_printf "expect GRUB images under the directory DIR/%s instead of the %s directory" "@grubdirname@" "$grubdir")"
+    print_option_help "--boot-directory=$(gettext "DIR")" "$dirmsg"
+    echo
+    gettext "MENU_ENTRY is a number, a menu item title or a menu item identifier."; echo
+    echo
+    gettext "Report bugs to <bug-grub@gnu.org>."; echo
+}
+
+argument () {
+  opt=$1
+  shift
+
+  if test $# -eq 0; then
+      gettext_printf "%s: option requires an argument -- \`%s'\n" "$self" "$opt" 1>&2
+      exit 1
+  fi
+  echo $1
+}
+
+# Check the arguments.
+while test $# -gt 0
+do
+    option=$1
+    shift
+
+    case "$option" in
+    -h | --help)
+	usage
+	exit 0 ;;
+    -V | --version)
+	echo "$self (${PACKAGE_NAME}) ${PACKAGE_VERSION}"
+	exit 0 ;;
+
+# Accept for compatibility
+    --root-directory)
+	rootdir=`argument $option "$@"`; shift ;;
+    --root-directory=*)
+	rootdir=`echo "$option" | sed 's/--root-directory=//'` ;;
+
+    --boot-directory)
+    bootdir=`argument $option "$@"`; shift;;
+    --boot-directory=*)
+    bootdir=`echo "$option" | sed 's/--boot-directory=//'` ;;
+
+    -*)
+	gettext_printf "Unrecognized option \`%s'\n" "$option" 1>&2
+	usage
+	exit 1
+	;;
+    *)
+	if test "x$entry" != x; then
+	    gettext "More than one menu entry?" 1>&2
+	    echo >&2
+	    usage
+	    exit 1
+	fi
+	entry="${option}" ;;
+    esac
+done
+
+if test "x$entry" = x; then
+    gettext "Menu entry not specified." 1>&2
+    echo >&2
+    usage
+    exit 1
+fi
+
+if [ -z "$bootdir" ]; then
+    # Default bootdir if bootdir not initialized.
+    bootdir=/@bootdirname@
+
+    if [ -n "$rootdir" ] ; then
+        # Initialize bootdir if rootdir was initialized.
+        bootdir=${rootdir}/@bootdirname@
+    fi
+fi
+
+grubdir=`echo "${bootdir}/@grubdirname@" | sed 's,//*,/,g'`
+
+$grub_editenv ${grubdir}/grubenv unset prev_saved_entry
+$grub_editenv ${grubdir}/grubenv unset next_entry
+$grub_editenv ${grubdir}/grubenv set saved_entry="$entry"
+
+# Bye.
+exit 0

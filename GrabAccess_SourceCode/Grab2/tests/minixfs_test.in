@@ -1,0 +1,30 @@
+#!@BUILD_SHEBANG@
+
+set -e
+
+if [ "x$EUID" = "x" ] ; then
+  EUID=`id -u`
+fi
+
+if [ "$EUID" != 0 ] ; then
+   exit 99
+fi
+
+if ! which mkfs.minix >/dev/null 2>&1; then
+   echo "mkfs.minix not installed; cannot test minixfs."
+   exit 99
+fi
+
+if ! mkfs.minix -h | grep -- -v > /dev/null; then
+    echo "mkfs.minix doesn't support minix2fs; cannot test minix*fs."
+   exit 99
+fi
+
+if ! mkfs.minix -h | grep -- -3 > /dev/null; then
+    echo "mkfs.minix doesn't support minix3fs; cannot test minix*fs."
+   exit 99
+fi
+
+"@builddir@/grub-fs-tester" minix
+"@builddir@/grub-fs-tester" minix2
+"@builddir@/grub-fs-tester" minix3

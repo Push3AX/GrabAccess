@@ -1,0 +1,20 @@
+#!@BUILD_SHEBANG@
+
+cd '@srcdir@'
+
+tdir="$(mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX")" || exit 99
+
+xgettext -f po/POTFILES.in -L C -o "$tdir/"skip.pot -x po/grub.pot --keyword=grub_util_info --keyword=grub_dprintf:1,2 --keyword=grub_register_command --keyword=grub_register_extcmd --keyword=grub_efiemu_resolve_symbol --keyword=grub_efiemu_register_symbol --keyword=grub_dl_load --keyword=grub_crypto_lookup_md_by_name --keyword=grub_crypto_lookup_cipher_by_name --keyword=grub_efiemu_resolve_symbol --keyword=alias --keyword=grub_ieee1275_get_property:2 --keyword=grub_ieee1275_find_device --keyword=grub_ieee1275_get_integer_property:2 --keyword=INIT_IEEE1275_COMMON:2  --keyword=grub_boot_time --keyword=grub_env_get --keyword=grub_env_set --keyword=grub_register_variable_hook --keyword=grub_fatal --keyword=__asm__ --keyword=volatile --keyword=__volatile__  --keyword=grub_error:2 --from-code=iso-8859-1
+xgettext -f po/POTFILES.in -L C -o "$tdir/"skip2.pot -x po/grub.pot --keyword=volatile:2 --keyword=__volatile__:2 --keyword=grub_dprintf:2 --from-code=iso-8859-1
+xgettext -f po/POTFILES.in -L C -o "$tdir/"skip3.pot -x po/grub.pot --keyword=volatile:3 --keyword=__volatile__:3 --from-code=iso-8859-1
+
+cat po/POTFILES.in | xargs grep -hE -o "(  |    ){\"[a-z0-9\-]*\",[[:space:]]*('.'|[0-9]|-[0-9])," |sed "s,[[:space:]]*{\",,g;s,\"\,[[:space:]]*\('.'\|[0-9]\|-[0-9]\)\,,,g" | awk '{ print "msgid \"" $0 "\"\nmsgstr \"\"" ; }' > "$tdir/"opts.pot
+cat po/POTFILES.in | xargs grep -hE -o "[[:space:]]*\.name[[:space:]]*=[[:space:]]*\"[a-zA-Z0-9 ()]*\"" |sed "s,[[:space:]]*\.name[[:space:]]*=[[:space:]]*\",,g;s,\",,g" | awk '{ print "msgid \"" $0 "\"\nmsgstr \"\"" ; }' > "$tdir/"name.pot
+
+out="$(cat po/POTFILES.in | grep -v '\(colors.c\|lsefisystab.c\|lsefimmap.c\|lssal.c\|hdparm.c\|sendkey.c\|lsacpi.c\|lspci.c\|usbtest.c\|legacy_parse.c\|/libgcrypt/\|hfs.c\|/efi\.c$\|gnulib\|tests/\|util/ieee1275/ofpath.c\|minilzo.c\|terminfo.c\|setpci.c\|bin2h.c\|cb_timestamps.c\|grub-pe2elf.c\|getroot_[a-z]*.c\|getroot.c\|arc/init.c\|color.c\|grub-mklayout.c\|gentrigtables.c\|lzodefs.h\|lsefi.c\|cbls.c\|/zfs\.h$\|grub-macho2img.c\|syslinux_parse.c\|lvm.c\|efidisk.c\|grub-mkfont.c\|reiserfs.c\|LzmaEnc.c\)' | xgettext -f - -L C -o - -x po/grub.pot -x "$tdir/"skip.pot -x "$tdir/"skip2.pot -x "$tdir/"skip3.pot -x "$tdir/"opts.pot -x "$tdir/"name.pot -x po/exclude.pot -a --from-code=iso-8859-1)"
+rm -rf "$tdir"
+if [ x"$out" != x ]; then
+    echo "$out"
+    exit 1;
+fi
+

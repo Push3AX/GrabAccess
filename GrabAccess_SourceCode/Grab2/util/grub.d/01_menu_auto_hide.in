@@ -1,0 +1,48 @@
+#! /bin/sh
+
+# Disable / skip generating menu-auto-hide config parts on serial terminals
+for x in ${GRUB_TERMINAL_INPUT} ${GRUB_TERMINAL_OUTPUT}; do
+  case "$x" in
+    serial*)
+      exit 0
+      ;;
+  esac
+done
+
+cat << EOF
+if [ "\${boot_success}" = "1" -o "\${boot_indeterminate}" = "1" ]; then
+  set last_boot_ok=1
+else
+  set last_boot_ok=0
+fi
+
+# Reset boot_indeterminate after a successful boot
+if [ "\${boot_success}" = "1" ] ; then
+  set boot_indeterminate=0
+# Avoid boot_indeterminate causing the menu to be hidden more then once
+elif [ "\${boot_indeterminate}" = "1" ]; then
+  set boot_indeterminate=2
+fi
+set boot_success=0
+save_env boot_success boot_indeterminate
+
+if [ x\$feature_timeout_style = xy ] ; then
+  if [ "\${menu_show_once}" ]; then
+    unset menu_show_once
+    save_env menu_show_once
+    set timeout_style=menu
+    set timeout=60
+  elif [ "\${menu_auto_hide}" -a "\${last_boot_ok}" = "1" ]; then
+    set orig_timeout_style=\${timeout_style}
+    set orig_timeout=\${timeout}
+    if [ "\${fastboot}" = "1" ]; then
+      # timeout_style=menu + timeout=0 avoids the countdown code keypress check
+      set timeout_style=menu
+      set timeout=0
+    else
+      set timeout_style=hidden
+      set timeout=1
+    fi
+  fi
+fi
+EOF

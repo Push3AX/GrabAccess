@@ -1,0 +1,34 @@
+From 156c523e2945c9b43c5500fb93988b0dd2f08d75 Mon Sep 17 00:00:00 2001
+From: Vladimir Serbinenko <phcoder@gmail.com>
+Date: Sun, 1 Mar 2020 12:09:25 +0000
+Subject: [PATCH 3/4] Make msgfmt output in little-endian
+
+GRUB expects this.
+---
+ gettext-runtime/po/Makefile.in.in | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/gettext-runtime/po/Makefile.in.in b/gettext-runtime/po/Makefile.in.in
+index 32e0c99a2..f3ef54c39 100644
+--- a/gettext-runtime/po/Makefile.in.in
++++ b/gettext-runtime/po/Makefile.in.in
+@@ -84,13 +84,13 @@ CATALOGS = @CATALOGS@
+ 
+ .po.mo:
+ 	@echo "$(MSGFMT) -c -o $@ $<"; \
+-	$(MSGFMT) -c -o t-$@ $< && mv t-$@ $@
++	$(MSGFMT) --endianness=little -c -o t-$@ $< && mv t-$@ $@
+ 
+ .po.gmo:
+ 	@lang=`echo $* | sed -e 's,.*/,,'`; \
+ 	test "$(srcdir)" = . && cdcmd="" || cdcmd="cd $(srcdir) && "; \
+-	echo "$${cdcmd}rm -f $${lang}.gmo && $(GMSGFMT) -c --statistics --verbose -o $${lang}.gmo $${lang}.po"; \
+-	cd $(srcdir) && rm -f $${lang}.gmo && $(GMSGFMT) -c --statistics --verbose -o t-$${lang}.gmo $${lang}.po && mv t-$${lang}.gmo $${lang}.gmo
++	echo "$${cdcmd}rm -f $${lang}.gmo && $(GMSGFMT) --endianness=little -c --statistics --verbose -o $${lang}.gmo $${lang}.po"; \
++	cd $(srcdir) && rm -f $${lang}.gmo && $(GMSGFMT) --endianness=little -c --statistics --verbose -o t-$${lang}.gmo $${lang}.po && mv t-$${lang}.gmo $${lang}.gmo
+ 
+ .sin.sed:
+ 	sed -e '/^#/d' $< > t-$@
+-- 
+2.17.1
+

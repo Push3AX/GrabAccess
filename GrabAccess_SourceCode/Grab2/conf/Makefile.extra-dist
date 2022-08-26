@@ -1,0 +1,162 @@
+EXTRA_DIST += autogen.sh
+EXTRA_DIST += geninit.sh
+
+EXTRA_DIST += gentpl.py
+EXTRA_DIST += Makefile.util.def
+EXTRA_DIST += Makefile.utilgcry.def
+
+EXTRA_DIST += asm-tests
+EXTRA_DIST += unicode
+
+EXTRA_DIST += util/import_gcry.py
+EXTRA_DIST += util/import_unicode.py
+
+EXTRA_DIST += docs/autoiso.cfg
+EXTRA_DIST += docs/grub.cfg
+EXTRA_DIST += docs/osdetect.cfg
+EXTRA_DIST += docs/org.gnu.grub.policy
+EXTRA_DIST += docs/grub-boot-success.service
+EXTRA_DIST += docs/grub-boot-success.timer
+
+EXTRA_DIST += conf/i386-cygwin-img-ld.sc
+
+EXTRA_DIST += grub-core/Makefile.core.def
+EXTRA_DIST += grub-core/Makefile.gcry.def
+
+EXTRA_DIST += grub-core/genmoddep.awk
+EXTRA_DIST += grub-core/genmod.sh.in
+EXTRA_DIST += grub-core/gensyminfo.sh.in
+EXTRA_DIST += grub-core/gensymlist.sh
+EXTRA_DIST += grub-core/genemuinit.sh
+EXTRA_DIST += grub-core/genemuinitheader.sh
+
+EXTRA_DIST += grub-core/lib/gnulib-patches/fix-base64.patch
+EXTRA_DIST += grub-core/lib/gnulib-patches/fix-null-deref.patch
+EXTRA_DIST += grub-core/lib/gnulib-patches/fix-null-state-deref.patch
+EXTRA_DIST += grub-core/lib/gnulib-patches/fix-regcomp-uninit-token.patch
+EXTRA_DIST += grub-core/lib/gnulib-patches/fix-regexec-null-deref.patch
+EXTRA_DIST += grub-core/lib/gnulib-patches/fix-uninit-structure.patch
+EXTRA_DIST += grub-core/lib/gnulib-patches/fix-unused-value.patch
+EXTRA_DIST += grub-core/lib/gnulib-patches/fix-width.patch
+EXTRA_DIST += grub-core/lib/gnulib-patches/no-abort.patch
+
+EXTRA_DIST += grub-core/lib/libgcrypt
+EXTRA_DIST += grub-core/lib/libgcrypt-grub/mpi/generic
+EXTRA_DIST += $(shell find $(top_srcdir)/include -name '*.h')
+EXTRA_DIST += $(shell find $(top_srcdir)/grub-core/lib -name '*.h')
+EXTRA_DIST += grub-core/efiemu/runtime/config.h
+
+EXTRA_DIST += grub-core/lib/LzmaDec.c
+
+EXTRA_DIST += grub-core/fs/cpio_common.c
+
+EXTRA_DIST += BUGS
+EXTRA_DIST += util/i386/efi/grub-dumpdevtree
+EXTRA_DIST += util/spkmodem-recv.c
+EXTRA_DIST += util/import_gcrypth.sed
+EXTRA_DIST += util/bin2h.c
+EXTRA_DIST += util/grub-gen-asciih.c
+EXTRA_DIST += util/grub-gen-widthspec.c
+EXTRA_DIST += util/grub-module-verifier.c
+EXTRA_DIST += util/grub-module-verifier32.c
+EXTRA_DIST += util/grub-module-verifier64.c
+EXTRA_DIST += util/grub-module-verifierXX.c
+EXTRA_DIST += util/grub-pe2elf.c
+
+
+EXTRA_DIST += m4/gnulib-cache.m4
+EXTRA_DIST += m4/glibc2.m4
+EXTRA_DIST += m4/gnulib-tool.m4
+EXTRA_DIST += m4/intdiv0.m4
+EXTRA_DIST += m4/intl.m4
+EXTRA_DIST += m4/intldir.m4
+EXTRA_DIST += m4/intmax.m4
+EXTRA_DIST += m4/inttypes-pri.m4
+EXTRA_DIST += m4/lcmessage.m4
+EXTRA_DIST += m4/lock.m4
+EXTRA_DIST += m4/printf-posix.m4
+EXTRA_DIST += m4/threadlib.m4
+EXTRA_DIST += m4/uintmax_t.m4
+EXTRA_DIST += m4/visibility.m4
+EXTRA_DIST += m4/math_h.m4
+
+EXTRA_DIST += grub-core/osdep/apple/hostdisk.c
+EXTRA_DIST += grub-core/osdep/aros/hostdisk.c
+EXTRA_DIST += grub-core/osdep/basic/hostdisk.c
+EXTRA_DIST += grub-core/osdep/bsd/hostdisk.c
+EXTRA_DIST += grub-core/osdep/freebsd/hostdisk.c
+EXTRA_DIST += grub-core/osdep/hurd/hostdisk.c
+EXTRA_DIST += grub-core/osdep/linux/hostdisk.c
+EXTRA_DIST += grub-core/osdep/windows/hostdisk.c
+EXTRA_DIST += grub-core/osdep/sun/hostdisk.c
+EXTRA_DIST += grub-core/osdep/haiku/hostdisk.c
+
+EXTRA_DIST += grub-core/osdep/basic/init.c
+EXTRA_DIST += grub-core/osdep/windows/init.c
+
+EXTRA_DIST += grub-core/osdep/apple/getroot.c
+EXTRA_DIST += grub-core/osdep/aros/getroot.c
+EXTRA_DIST += grub-core/osdep/basic/getroot.c
+EXTRA_DIST += grub-core/osdep/bsd/getroot.c
+EXTRA_DIST += grub-core/osdep/windows/getroot.c
+EXTRA_DIST += grub-core/osdep/freebsd/getroot.c
+EXTRA_DIST += grub-core/osdep/hurd/getroot.c
+EXTRA_DIST += grub-core/osdep/linux/getroot.c
+EXTRA_DIST += grub-core/osdep/sun/getroot.c
+EXTRA_DIST += grub-core/osdep/haiku/getroot.c
+
+EXTRA_DIST += grub-core/osdep/basic/random.c
+EXTRA_DIST += grub-core/osdep/basic/ofpath.c
+
+EXTRA_DIST += grub-core/osdep/unix/password.c
+EXTRA_DIST += grub-core/osdep/unix/random.c
+EXTRA_DIST += grub-core/osdep/unix/sleep.c
+
+EXTRA_DIST += grub-core/osdep/linux/ofpath.c
+
+EXTRA_DIST += grub-core/osdep/windows/password.c
+EXTRA_DIST += grub-core/osdep/windows/random.c
+EXTRA_DIST += grub-core/osdep/windows/sleep.c
+
+EXTRA_DIST += po/gettext-patches/0001-Support-POTFILES-shell.patch
+EXTRA_DIST += po/gettext-patches/0002-Handle-gettext_printf-shell-function.patch
+EXTRA_DIST += po/gettext-patches/0003-Make-msgfmt-output-in-little-endian.patch
+EXTRA_DIST += po/gettext-patches/0004-Use-SHELL-rather-than-bin-sh.patch
+
+EXTRA_DIST += po/POTFILES-shell.in
+EXTRA_DIST += po/README
+EXTRA_DIST += po/Rules-translit
+EXTRA_DIST += po/Rules-windowsdir
+EXTRA_DIST += po/arabic.sed
+EXTRA_DIST += po/cyrillic.sed
+EXTRA_DIST += po/greek.sed
+EXTRA_DIST += po/grub.d.sed
+EXTRA_DIST += po/hebrew.sed
+
+EXTRA_DIST += tests/dfly-mbr-mbexample.mbr.img.gz
+EXTRA_DIST += tests/dfly-mbr-mbexample.dfly.img.gz
+
+EXTRA_DIST += coreboot.cfg
+
+EXTRA_DIST += tests/file_filter/file
+EXTRA_DIST += tests/file_filter/file.gz
+EXTRA_DIST += tests/file_filter/file.gz.sig
+EXTRA_DIST += tests/file_filter/file.lzop
+EXTRA_DIST += tests/file_filter/file.lzop.sig
+EXTRA_DIST += tests/file_filter/file.xz
+EXTRA_DIST += tests/file_filter/file.xz.sig
+EXTRA_DIST += tests/file_filter/keys
+EXTRA_DIST += tests/file_filter/keys.pub
+EXTRA_DIST += tests/file_filter/test.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04/isolinux/prompt.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04/isolinux/gfxboot.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04/isolinux/adtxt.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04/isolinux/isolinux.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04/isolinux/exithelp.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04/isolinux/txt.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04/isolinux/menu.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04/isolinux/stdmenu.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04/isolinux/dtmenu.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04/isolinux/po4a.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04/isolinux/rqtxt.cfg
+EXTRA_DIST += tests/syslinux/ubuntu10.04_grub.cfg.in

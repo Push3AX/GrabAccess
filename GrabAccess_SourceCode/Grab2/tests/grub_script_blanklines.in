@@ -1,0 +1,15 @@
+#! @BUILD_SHEBANG@
+set -e
+
+@builddir@/grub-script-check <<EOF
+# comment 1
+
+command1 arg1
+
+command2 arg2
+
+
+
+last command
+# comment 2
+EOF
