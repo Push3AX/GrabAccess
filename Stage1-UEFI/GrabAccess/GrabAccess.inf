@@ -1,0 +1,35 @@
+[Defines] 
+  INF_VERSION = 0x00010005
+  BASE_NAME = GrabAccess
+  FILE_GUID = 2133F8F3-2D54-4937-BB2D-73C3259081CC
+  MODULE_TYPE = UEFI_APPLICATION
+  VERSION_STRING = 1.0
+  ENTRY_POINT = UefiMain
+  
+[Sources] 
+  GrabAccess.c 
+
+[BuildOptions]
+  GCC:*_*_*_CC_FLAGS = -Wno-missing-braces
+
+[Packages]
+  MdePkg/MdePkg.dec
+  
+[LibraryClasses]
+  UefiLib
+  BaseLib
+  UefiBootServicesTableLib
+  BaseMemoryLib
+  DebugLib
+  DevicePathLib
+  UefiApplicationEntryPoint
+
+[Protocols]
+  gEfiAcpiTableProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiDevicePathProtocolGuid
+  gEfiLoadedImageProtocolGuid
+
+[Guids]
+  gEfiEventReadyToBootGuid
+  gEfiFileInfoGuid

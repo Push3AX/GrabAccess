@@ -1,0 +1,36 @@
+[Defines] 
+  INF_VERSION = 0x00010005
+  BASE_NAME = GrabAccessDXE
+  FILE_GUID = 213FDF34-62EE-4018-8FA5-3B3EF931BE92
+  MODULE_TYPE = DXE_DRIVER
+  VERSION_STRING = 1.0
+  ENTRY_POINT = GrabAccessEntry 
+  
+[Sources] 
+  GrabAccessDXE.c 
+
+[BuildOptions]
+  GCC:*_*_*_CC_FLAGS = -Wno-missing-braces
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  
+[LibraryClasses]
+  BaseLib
+  UefiLib
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  BaseMemoryLib
+  DebugLib
+  
+[Depex]
+  TRUE
+
+[Protocols]
+  gEfiAcpiTableProtocolGuid
+  gEfiFirmwareVolume2ProtocolGuid
+
+[Guids]
+  gEfiEventReadyToBootGuid
+  gEfiEventLegacyBootGuid
