@@ -157,6 +157,6 @@ If there is no Payload at its end, it hijacks Logonui.exe through IFEO, displayi
 
 
 ## 404Starlink
-<img src lazysrc="https://github.com/knownsec/404StarLink-Project/raw/master/logo.png" width="30%">
+<a href="https://github.com/knownsec/404StarLink2.0-Galaxy" target="_blank"><img src="https://raw.githubusercontent.com/knownsec/404StarLink-Project/master/logo.png" align="middle"/></a>
 
 GrabAccess has joined [404Starlink](https://github.com/knownsec/404StarLink)
