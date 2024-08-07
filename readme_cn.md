@@ -153,3 +153,8 @@ WPBT所加载的应用程序，并非常规的Win32程序。而是一个Windows 
 1. [Windows Platform Binary Table (WPBT) ](https://download.microsoft.com/download/8/a/2/8a2fb72d-9b96-4e2d-a559-4a27cf905a80/windows-platform-binary-table.docx)
 2. [WPBT-Builder ](https://github.com/tandasat/WPBT-Builder)
 3. [Windows Native App by Fox](http://fox28813018.blogspot.com/2019/05/windows-platform-binary-table-wpbt-wpbt.html)
+
+## 404星链计划
+<a href="https://github.com/knownsec/404StarLink2.0-Galaxy" target="_blank"><img src="https://raw.githubusercontent.com/knownsec/404StarLink-Project/master/logo.png" align="middle"/></a>
+
+GrabAccess 现已加入 [404星链计划](https://github.com/knownsec/404StarLink).
