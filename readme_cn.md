@@ -1,6 +1,6 @@
 # GrabAccess
 
-**Bookit / Windows登陆密码和Bitlocker绕过工具**
+**Bootkit / Windows登陆密码绕过工具**
 
 ------
 
@@ -9,7 +9,7 @@
 在物理接触的情况下，GrabAccess可以：
 
 1. 绕过Windows登陆密码执行任意操作（以System权限执行命令、重置Windows账户密码等）
-2. 植入木马并添加自启动（可以绕过Bitlocker，但要求受害者登录）
+2. 植入木马并添加自启动
 3. 通过修改主板UEFI固件实现无视重装系统、更换硬盘的持久化（Bootkit）
 
 
@@ -36,7 +36,7 @@ GrabAccess最基础的功能是绕过Windows登录密码。
 
 
 
-## 自动化植入（支持绕过 Bitlocker）
+## 自动化植入
 
 GrabAccess可以自动植入指定的程序，并为其添加启动项。
 
@@ -55,10 +55,6 @@ GrabAccess可以自动植入指定的程序，并为其添加启动项。
 5. Windows启动后即可看到指定的程序。
 
 ![5](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/5.png)
-
-该植入过程可以绕过Bitlocker的系统盘加密。
-
-从含有GrabAccess的U盘启动后，GrabAccess就会写入到内存中。此时可以拔出U盘，但需要停留在Bitlocker输入密码的界面，等待受害者返回输入密码。当Bitlocker解锁之后，指定的程序会被写入磁盘。但在这之前，由于GrabAccess仅停留在内存，如果重启或关机，GrabAccess将会失效。
 
 
 
