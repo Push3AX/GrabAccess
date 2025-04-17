@@ -1,6 +1,6 @@
 # GrabAccess
 
-**Bookit / Windows Login Password and Bitlocker Bypass Tool**
+**Bootkit / Windows Login Password Bypass Tool**
 
 ------
 
@@ -9,7 +9,7 @@
 With physical access to the target device, GrabAccess can:
 
 1. Bypass the Windows login password to execute commands with System privileges, reset Windows account passwords, etc.
-2. Implant a specified program and add it to startup (this can bypass Bitlocker, but requires the victim to log in)
+2. Implant a specified program and add it to startup.
 3. Survive operating system reinstallations or hard drive replacement, by modifying the UEFI firmware of motherboard (Bootkit)
 
 
@@ -36,7 +36,7 @@ The basic function of GrabAccess is to bypass the Windows login password.
 
 
 
-## Automated Implantation (Bypassing Bitlocker)
+## Automated Implantation
 
 GrabAccess can automatically implant a specified program and add it to the startup items.
 
@@ -55,12 +55,6 @@ For this feature, you need to bundle GrabAccess with the program you wish to imp
 5. Once Windows boots up, the deployed application will be execute.
 
    ![5](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/5.png)
-
-This implantation process can bypass Bitlocker's system disk encryption.
-
-When the system is booted from GrabAccess, it loads into the system memory. The USB drive can be removed at this point, but you should remain at the Bitlocker password entry screen, waiting for the victim to return and enter the password. After Bitlocker is unlocked, the specified program will be written to the disk. 
-
-Note that before this point, since GrabAccess is only in memory, it will be lost if the computer is rebooted or powered off.
 
 
 
