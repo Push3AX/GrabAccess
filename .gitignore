@@ -1,0 +1,14 @@
+# Visual Studio local state
+.vs/
+*.suo
+*.user
+*.VC.db
+*.ipch
+
+# Windows DDK generated output
+Stage2-NativeNT/objfre_*/
+Stage2-NativeNT/build_log.txt
+Stage2-NativeNT/buildfre_*.log
+
+# Optional local payload used by Release/build.ps1
+Release/payload.exe

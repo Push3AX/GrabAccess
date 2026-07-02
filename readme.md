@@ -4,15 +4,18 @@
 
 ------
 
- [**English**](https://github.com/Push3AX/GrabAccess/blob/main/readme.md) | [中文](https://github.com/Push3AX/GrabAccess/blob/main/readme_cn.md) 
+[**English**](https://github.com/Push3AX/GrabAccess/blob/main/readme.md) | [中文](https://github.com/Push3AX/GrabAccess/blob/main/readme_cn.md)
 
 With physical access to the target device, GrabAccess can:
 
-1. Bypass the Windows login password to execute commands with System privileges, reset Windows account passwords, etc.
-2. Implant a specified program and add it to startup.
-3. Survive operating system reinstallations or hard drive replacement, by modifying the UEFI firmware of motherboard (Bootkit)
+1. Bypass supported Windows local-account sign-in paths (local account + password / PIN / picture password)
+2. Provide file management and account management without signing in when the current sign-in method cannot be bypassed
+3. Automatically implant a specified program and add it to startup
+4. Survive operating system reinstallations or hard drive replacement by modifying the motherboard UEFI firmware (Bootkit)
 
+However, GrabAccess does not support bypassing Secure Boot, MBR boot, or 32-bit operating systems.
 
+------
 
 ## Quick Start
 
@@ -20,80 +23,81 @@ The basic function of GrabAccess is to bypass the Windows login password.
 
 1. Prepare a USB drive formatted in either `FAT16` or `FAT32`.
 
-2. Download [GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.1/GrabAccess_Release_1.1.0.zip) and extract it to the root directory of the USB drive.
+2. Download [GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.2/GrabAccess_Release_1.2.0.zip) and extract it to the root directory of the USB drive.
 
-   ![1](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/1.png)
+![](./images/default_en.png)
 
-3. Plug the USB drive into the target computer. Reboot and enter the BIOS menu upon startup. Select the USB drive as boot option (disable `Security Boot` if it's enabled).
+3. Plug the USB drive into the target computer. Reboot and enter the BIOS menu upon startup. Select the USB drive as the boot option. If `Secure Boot` is enabled, disable it first.
 
-   ![2](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/2.png)
+![](./images/BIOS.png)
 
-4. A CMD window and an account management interface will appear upon Windows startup, granting the ability to execute commands with System privileges without the need for login credentials.
+4. If the sign-in authentication bypass succeeds, a prompt will appear during startup. Later, at the Windows sign-in screen, enter any password to sign in.
 
-   ![3](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/3.png)
+<img src="./images/patchSucceed.png" width="80%" />
 
-5. Press `ALT+F4` to close the CMD window, and Windows will return to the login screen.
+5. If the sign-in method cannot be bypassed, a helper window will appear during startup. You can manage files, manage accounts, or execute commands with System privileges.
+
+![](./images/fallback_en.png)
 
 
+------
 
 ## Automated Implantation
 
 GrabAccess can automatically implant a specified program and add it to the startup items.
 
-For this feature, you need to bundle GrabAccess with the program you wish to implanted:
+For this feature, you need to bundle GrabAccess with the program you wish to implant:
 
-1. Download [GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.1/GrabAccess_Release_1.1.0.zip) and extract it to the root directory of the USB drive.
+1. Download [GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.2/GrabAccess_Release_1.2.0.zip) and extract it to the root directory of the USB drive.
 
-2. Name the program  you wish to implanted as `payload.exe` and place it in the root directory of the USB drive.
+2. Name the program you wish to implant as `payload.exe` and place it in the root directory of the USB drive.
 
-3. Execute `build.bat` to bundle everything together.
+3. Run `powershell -ExecutionPolicy Bypass -File .\build.ps1` to bundle everything together.
 
-   ![4](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/4.png)
+![](./images/packingPayload_en.png)
 
-4. Plug the USB drive into the target computer and boot from the USB drive (as previously described).
+4. Plug the USB drive into the target computer and boot from the USB drive.
 
-5. Once Windows boots up, the deployed application will be execute.
+5. Once Windows boots, the specified program will be added to startup and executed.
 
-   ![5](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/5.png)
+![](./images/AutoRun_en.png)
 
-
+------
 
 ## Implementing Bootkit via Motherboard UEFI Firmware Modification
 
-GrabAccess can be integrated into a computer's motherboard UEFI firmware, ensuring a hardware-level persistence (Bootkit).
+GrabAccess can be integrated into a computer's motherboard UEFI firmware, ensuring hardware-level persistence (Bootkit).
 
-Each time the Windows boots, GrabAccess re-implants the specified program. This process remains effective even after reinstallation of the operating system or replacement of the hard disk. Removal of this implant requires reflashing the motherboard's firmware or replacing the motherboard.
+Each time Windows boots, GrabAccess re-implants the specified program. This process remains effective even after reinstallation of the operating system or replacement of the hard disk. Removal of this implant requires reflashing the motherboard's firmware or replacing the motherboard.
 
 **Warning: The following procedure may damage your motherboard! Proceed only if you have sufficient knowledge of UEFI firmware. AT YOUR OWN RISK!!!!**
 
 The process involves four main steps:
 
-1. Bundle GrabAccess with the specified program.
-2. Extracting the motherboard's UEFI firmware.
-3. Inserting GrabAccessDXE into the UEFI firmware.
-4. Reflashing the modified firmware back onto the motherboard.
+1. Bundle GrabAccess with the specified program
+2. Extract the motherboard's UEFI firmware
+3. Insert GrabAccessDXE into the UEFI firmware
+4. Reflash the modified firmware back onto the motherboard
 
-Steps 2 and 4 vary significantly across different motherboard models. While some can be flashed via software, others require a hardware programmer due to built-in verifications. 
+Steps 2 and 4 vary significantly across different motherboard models. While some can be flashed via software, others require a hardware programmer due to built-in verifications. Due to these variations, the specifics are not discussed here. It is advised to search online for the procedure relevant to your specific motherboard model.
 
-Due to these variations, the specifics are not discussed here, it is advised to search online for the procedure relevant to your specific motherboard model.
-
-To package GrabAccess with the intended program, follow the previously outlined steps: rename the program to `payload.exe`, place it in the GrabAccess root directory, and run `build.bat`. This results in a file named `native.exe`, which will be used in the subsequent steps.
+To package GrabAccess with the intended program, follow the previously outlined steps: rename the program to `payload.exe`, place it in the GrabAccess root directory, and run `powershell -ExecutionPolicy Bypass -File .\build.ps1`. This results in a file named `native.exe`, which will be used in the subsequent steps.
 
 After extracting the motherboard UEFI firmware, use [UEFITool](https://github.com/LongSoft/UEFITool) to open it. Press `Ctrl+F`, select `Text`, and search for `pcibus`. Double-click on the first result in the subsequent list.
 
-![6](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/6.png)
+![](./images/1.png)
 
-Right-click on the `pcibus` entry and choose `Insert before`. Then select `GrabAccessDXE.ffs` from the `UEFI_FSS` folder in the downloaded [GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.1/GrabAccess_Release_1.1.0.zip).
+Right-click on the `pcibus` entry and choose `Insert before`. Then select `GrabAccessDXE.ffs` from the `UEFI_FSS` folder in the downloaded [GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.2/GrabAccess_Release_1.2.0.zip).
 
-![7](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/7.png)
+![](./images/2.png)
 
 After inserting `GrabAccessDXE`, right-click on it, choose `Insert before`, and add `native.ffs` from the `UEFI_FSS` folder. The list should appear as follows:
 
-![8](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/8.png)
+![](./images/3.png)
 
-Open `native.ffs` (identified by its GUID `2136252F-5F7C-486D-B89F-545EC42AD45C`). Right-click on the `Raw section`, select `Replace body`, and replace it with the `native.exe` file which is previously created.
+Open `native.ffs` (identified by its GUID `2136252F-5F7C-486D-B89F-545EC42AD45C`). Right-click on the `Raw section`, select `Replace body`, and replace it with the `native.exe` file that was previously created.
 
-![9](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/9.png)
+![](./images/4.png)
 
 Lastly, save the modified firmware by selecting `Save image file` from the File menu.
 
@@ -101,56 +105,50 @@ This firmware is now embedded with a Bootkit and ready to be flashed back onto t
 
 If the process fails, consider these steps:
 
-1. Turn off `Security Boot` and `CSM` in the UEFI settings, ensuring the OS boots in UEFI mode.
-2. Insert `pcddxe.ffs` from the `UEFI_FSS` folder into the firmware (as previously described). Note that this module may conflict with others, potentially preventing booting. This step is advised only if using a programmer!
+1. Turn off `Secure Boot` and `CSM` in the UEFI settings, ensuring the OS boots in UEFI mode.
+2. Insert `pcddxe.ffs` from the `UEFI_FSS` folder into the firmware as previously described. Note that this module may conflict with others, potentially preventing booting. This step is advised only if using a programmer!
 
+------
 
+## Going Deeper
 
-## Supported Operating Systems
-
-GrabAccess only supports Windows operating systems under UEFI, and is currently only supports x64 systems.
-
-Tested on Windows 10 (1803, 22H2) and Windows 11 (23H2), including using TPM, online accounts, and PIN codes. However, it does not support bypassing Security Boot.
-
-
-
-# Going deeper
-
-## Windows Platform Binary Table
+### Windows Platform Binary Table
 
 Unlike Kon-boot, which tampers with the Windows kernel, GrabAccess is based on a legitimate backdoor in Windows: WPBT (Windows Platform Binary Table).
 
-Manufacturers typically use WPBT to integrate driver management and anti-theft software into their computers. Similar to a Bootkit virus, once a WPBT entry exists in the motherboard, the designated program will automatically installed on Windows system during boot-up, regardless of system reinstalls or hard drive changes.
+Manufacturers typically use WPBT to integrate driver management and anti-theft software into their computers. Similar to a Bootkit virus, once a WPBT entry exists in the motherboard, the designated program will automatically be installed on Windows during boot-up, regardless of system reinstalls or hard drive changes.
 
 WPBT was intended to be implemented by manufacturers into the UEFI firmware of the motherboard. However, attackers can exploit this mechanism by injecting a WPBT entry during the UEFI boot process, without needing to modify the motherboard firmware.
 
+### What GrabAccess Does
 
+GrabAccess consists of three stages.
 
-## Components of GrabAccess
+Stage1 is a UEFI application or UEFI DXE driver. It writes a WPBT entry into the ACPI table in the UEFI environment. The USB version reads `native.exe` from the boot partition, writes the WPBT entry, and then continues to Windows Boot Manager. The firmware-implant version reads the embedded `native.exe` from the firmware volume, causing the WPBT flow to run again on every boot.
 
-GrabAccess consists of two components:
+Stage2 is a Windows Native Application executed by WPBT before Windows sign-in. WPBT can only load a Native App, and the system has not yet entered the full Win32 environment at this stage. Stage2 reads the packaging information at the end of its own file and decides which mode to use.
 
-1. **UEFI Application**: In the source code as Stage1-UEFI, this is used to write WPBT entries into the ACPI table in the UEFI environment.
-2. **Windows Native Application**: In the source code as Stage2-NativeNT, this is used to deploying the payload and setting up startup items.
+In custom payload mode, Stage2 extracts the user-specified payload to `C:\Windows\System32\GrabAccess.exe`, and writes the `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\GrabAccessAutorun` startup item.
 
-## Functions of the Native Application
+If there is no custom payload, Stage2 writes the Stage3 components `Injector.exe`, `GrabAccessMsvpBypass.dll`, `GrabAccessExplorerHost.exe`, and `GrabAccessFallback.exe` to `C:\Windows\System32`. It then hijacks LogonUI through IFEO so the GrabAccess helper script runs during startup.
 
-The application loaded by WPBT is not a standard Win32 program, but a Windows Native Application. It executes during the Windows Native NT phase, which occurs before user login. However, the APIs provided by Windows to Native NT phase are fewer than those available to Win32 programs.
+When the sign-in method is local account + password / PIN / picture password, Stage2 uses `Injector.exe` to inject `GrabAccessMsvpBypass.dll` into `lsass.exe`. This DLL hooks `NtlmShared!MsvpPasswordValidate`, making the password validation function return success unconditionally. As a result, the user can sign in with any password.
 
-In the source code, Stage2-NativeNT is tasked with writing out the final Payload (the specified program bundled by the user) to `C:\\Windows\\System32\\GrabAccess.exe`, and adding a startup item under `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\GrabAccess`.
+When the sign-in method is a Microsoft account, Entra ID / Azure AD, a domain account, or a case that cannot be bypassed such as RunAsPPL / protected LSASS, Stage2 starts `GrabAccessFallback.exe`, which provides three entry points: file management, command prompt, and account management. The file manager is `GrabAccessExplorerHost.exe`, the command prompt entry opens `cmd.exe` with SYSTEM privileges, and the account management entry opens `netplwiz.exe`.
 
-If there is no Payload at its end, it hijacks Logonui.exe through IFEO, displaying cmd.exe and netplwiz.exe during Windows login.
-
-
+------
 
 ## Credits
 
 1. [Windows Platform Binary Table (WPBT) ](https://download.microsoft.com/download/8/a/2/8a2fb72d-9b96-4e2d-a559-4a27cf905a80/windows-platform-binary-table.docx)
 2. [WPBT-Builder ](https://github.com/tandasat/WPBT-Builder)
 3. [Windows Native App by Fox](http://fox28813018.blogspot.com/2019/05/windows-platform-binary-table-wpbt-wpbt.html)
+4. [Nefarius Injector](https://github.com/nefarius/Injector)
 
+------
 
 ## 404Starlink
+
 <a href="https://github.com/knownsec/404StarLink2.0-Galaxy" target="_blank"><img src="https://raw.githubusercontent.com/knownsec/404StarLink-Project/master/logo.png" align="middle"/></a>
 
-GrabAccess has joined [404Starlink](https://github.com/knownsec/404StarLink)
+GrabAccess has joined [404Starlink](https://github.com/knownsec/404StarLink).

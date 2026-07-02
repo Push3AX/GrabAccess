@@ -1,3 +1,5 @@
-cd /d %~dp0
-build /ia32 /w /g
-copy objfre_win7_amd64\amd64\native.exe nativex64.exe
+@echo off
+setlocal
+cd /d "%~dp0\.."
+call make_all.bat --stage2-only
+exit /b %ERRORLEVEL%

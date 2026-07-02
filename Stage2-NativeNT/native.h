@@ -1,4 +1,4 @@
-//Environment information, which includes command line and image file name
+﻿//Environment information, which includes command line and image file name
 //#define NtCurrentProcess() ( (HANDLE) -1 )
 
 typedef unsigned long DWORD, *PDWORD, *LPDWORD;
@@ -11,32 +11,32 @@ RtlGetProcessHeap(
   IN ULONG                MaxNumberOfHeaps,
   OUT PVOID               *HeapArray );
 
-typedef struct 
+typedef struct
 {
-    ULONG            Unknown[21];     
+    ULONG            Unknown[21];
     UNICODE_STRING   CommandLine;
     UNICODE_STRING   ImageFile;
 } ENVIRONMENT_INFORMATION, *PENVIRONMENT_INFORMATION;
 
- 
+
 // This structure is passed as NtProcessStartup's parameter
-typedef struct 
+typedef struct
 {
     ULONG                     Unknown[3];
     PENVIRONMENT_INFORMATION  Environment;
 } STARTUP_ARGUMENT, *PSTARTUP_ARGUMENT;
 
-// Data structure for heap definition. 
-// This includes various sizing parameters and callback routines, 
+// Data structure for heap definition.
+// This includes various sizing parameters and callback routines,
 // which, if left NULL, result in default behavior
 
-typedef struct 
+typedef struct
 {
     ULONG     Length;
     ULONG     Unknown[11];
 } RTL_HEAP_DEFINITION, *PRTL_HEAP_DEFINITION;
 
- 
+
 // Native NT api function to write something to the boot-time
 // blue screen
 NTSTATUS NTAPI NtDisplayString(
@@ -44,50 +44,50 @@ NTSTATUS NTAPI NtDisplayString(
     );
 
 
-// Native applications must kill themselves when done - 
+// Native applications must kill themselves when done -
 // the job of this native API
 NTSTATUS NTAPI NtTerminateProcess(
-    HANDLE ProcessHandle, 
-    LONG ExitStatus 
+    HANDLE ProcessHandle,
+    LONG ExitStatus
     );
 
- 
+
 
 // Definition to represent current process
 //fox #define NtCurrentProcess() ( (HANDLE) -1 )
 
 // Heap creation routine
 HANDLE NTAPI RtlCreateHeap(
-    ULONG Flags, 
-    PVOID BaseAddress, 
-    ULONG SizeToReserve, 
-    ULONG SizeToCommit, 
+    ULONG Flags,
+    PVOID BaseAddress,
+    ULONG SizeToReserve,
+    ULONG SizeToCommit,
     PVOID Unknown,
     PRTL_HEAP_DEFINITION Definition
     );
 
-	
+
 // Heap allocation function (ala "malloc")
 PVOID NTAPI RtlAllocateHeap(
-    HANDLE Heap, 
-    ULONG Flags, 
-    ULONG Size 
+    HANDLE Heap,
+    ULONG Flags,
+    ULONG Size
     );
 
 // Heap free function (ala "free")
 BOOLEAN NTAPI RtlFreeHeap(
-    HANDLE Heap, 
-    ULONG Flags, 
-    PVOID Address 
+    HANDLE Heap,
+    ULONG Flags,
+    PVOID Address
     );
 
-//FOX 
+//FOX
 PVOID NTAPI RtlDestroyHeap(
-  HANDLE               Heap 
+  HANDLE               Heap
   );
-//FOX   
-    
-NTSTATUS NTAPI NtDelayExecution(BOOLEAN Alertable, PLARGE_INTEGER Interval);    
+//FOX
+
+NTSTATUS NTAPI NtDelayExecution(BOOLEAN Alertable, PLARGE_INTEGER Interval);
 
 //FOX-20190520 - File Access
 
@@ -128,11 +128,20 @@ NTSYSAPI NTSTATUS NTAPI NtCreateFile(PHANDLE FileHandle,
     PVOID EaBuffer OPTIONAL,
     ULONG EaLength);
 
-NTSYSAPI NTSTATUS NTAPI NtQueryInformationFile(HANDLE FileHandle, 
-	PIO_STATUS_BLOCK IoStatusBlock, 
+NTSYSAPI NTSTATUS NTAPI NtQueryInformationFile(HANDLE FileHandle,
+	PIO_STATUS_BLOCK IoStatusBlock,
 	PVOID FileInformation,
-	ULONG Length, 
+	ULONG Length,
 	FILE_INFORMATION_CLASS FileInformationClass);
 //FOX-20190520 - File Access
 
+// ZwQueryKey - query key metadata (subkey count, etc.)
+// KEY_FULL_INFORMATION and KEY_INFORMATION_CLASS are already defined by WDK ntddk.h
+NTSYSAPI NTSTATUS NTAPI ZwQueryKey(
+    HANDLE KeyHandle,
+    KEY_INFORMATION_CLASS KeyInformationClass,
+    PVOID KeyInformation,
+    ULONG Length,
+    PULONG ResultLength
+);
 

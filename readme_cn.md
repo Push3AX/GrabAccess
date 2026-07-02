@@ -8,11 +8,14 @@
 
 在物理接触的情况下，GrabAccess可以：
 
-1. 绕过Windows登陆密码执行任意操作（以System权限执行命令、重置Windows账户密码等）
-2. 植入木马并添加自启动
-3. 通过修改主板UEFI固件实现无视重装系统、更换硬盘的持久化（Bootkit）
+1. 绕过受支持的Windows本地账号登录路径（本地账号 + 密码 / PIN / 图片密码）
+2. 登陆方式无法绕过时，提供无需登录的文件管理、账户管理等功能
+3. 自动化植入指定的程序并添加自启动
+4. 通过修改主板UEFI固件实现无视重装系统、更换硬盘的持久化（Bootkit）
 
+但GrabAccess不支持绕过Secure Boot、MBR引导方式、32位操作系统。
 
+------
 
 ## 快速开始
 
@@ -20,21 +23,24 @@ GrabAccess最基础的功能是绕过Windows登录密码。
 
 1. 准备一个U盘。（需为`FAT16`或`FAT32`格式）
 
-2. 下载[GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.1/GrabAccess_Release_1.1.0.zip)，解压到U盘根目录。
+2. 下载[GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.2/GrabAccess_Release_1.2.0.zip)，解压到U盘根目录。
 
-   ![1](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/1.png)
+![](./images/default.png)
 
-3. 将U盘插入目标计算机。重启，在启动时进入BIOS菜单。选择从U盘启动（如果开启了`Security Boot`，还需将其设置为`DISABLE`）.
+3. 将U盘插入目标计算机。重启，在启动时进入BIOS菜单，选择从U盘启动（若开启了`Secure Boot`，还需将其关闭）。
 
-   ![2](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/2.png)
+![](./images/BIOS.png)
 
-4. 在Windows启动时会弹出CMD窗口和账户管理窗口，可以System权限执行任意命令而无需登录。
+4. 若成功绕过登录认证，在启动过程中会弹出提示信息，稍后在Windows登录界面输入任意密码即可登录。
 
-   ![3](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/3.png)
+<img src="./images/patchSucceed.png" width="80%" />
 
-5. 按下`ALT+F4`关闭CMD窗口后，Windows回到登陆界面。
+5. 若未能绕过登录认证，则在启动过程中会弹出提示窗口，可以进行文件管理、账户管理，或以System权限执行任意命令。
+
+![](./images/fallback.png)
 
 
+------
 
 ## 自动化植入
 
@@ -42,21 +48,21 @@ GrabAccess可以自动植入指定的程序，并为其添加启动项。
 
 要使用该功能，需要预先将GrabAccess与要植入的程序打包：
 
-1. 下载[GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.1/GrabAccess_Release_1.1.0.zip)，解压并放置在U盘根目录。
+1. 下载[GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.2/GrabAccess_Release_1.2.0.zip)，解压并放置在U盘根目录。
 
 2. 将需要植入的程序命名为`payload.exe`，放置在U盘根目录。
 
-3. 运行`build.bat`进行打包。
+3. 运行`powershell -ExecutionPolicy Bypass -File .\build.ps1`进行打包。
 
-   ![4](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/4.png)
+![](./images/packingPayload.png)
 
-4. 将U盘插入目标计算机、从U盘启动（与前文相同）
+4. 将U盘插入目标计算机、从U盘启动。
 
-5. Windows启动后即可看到指定的程序。
+5. Windows启动后，指定的程序将被添加到启动项并运行。
 
-![5](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/5.png)
+![](./images/AutoRun.png)
 
-
+------
 
 ## 修改主板UEFI固件实现Bootkit
 
@@ -75,23 +81,23 @@ GrabAccess可以被植入到计算机主板的UEFI固件。实现硬件级别的
 
 不同主板的第2和第4步有较大不同。部分主板可以通过软件方式刷新固件，但也有部分主板存在校验，只能使用编程器刷新。因差异众多，在此不深入讨论，读者可以自行在网上搜索某型号主板对应的方式。
 
-将GrabAccess与要植入的程序打包的方式与前文相同，即：将需要植入的程序命名为payload.exe，放置在GrabAccess的根目录，运行build.bat进行打包。结束后得到`native.exe`，稍后将会用到。
+将GrabAccess与要植入的程序打包的方式与前文相同，即：将需要植入的程序命名为payload.exe，放置在GrabAccess的根目录，运行`powershell -ExecutionPolicy Bypass -File .\build.ps1`进行打包。结束后得到`native.exe`，稍后将会用到。
 
 在提取到主板UEFI固件后，使用[UEFITool](https://github.com/LongSoft/UEFITool)打开，按下`Ctrl+F`，选择`Text`，搜索`pcibus`，在下方双击搜索到的第一项。
 
-![6](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/6.png)
+![](./images/1.png)
 
-在`pcibus`这一项上右键，选择`Insert before`，然后选取[GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.1/GrabAccess_Release_1.1.0.zip)中`UEFI_FSS`文件夹的`GrabAccessDXE.ffs`。
+在`pcibus`这一项上右键，选择`Insert before`，然后选取[GrabAccess_Release.zip](https://github.com/Push3AX/GrabAccess/releases/download/Version1.2/GrabAccess_Release_1.2.0.zip)中`UEFI_FSS`文件夹的`GrabAccessDXE.ffs`。
 
-![7](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/7.png)
+![](./images/2.png)
 
 插入`GrabAccessDXE`后，在`GrabAccessDXE`上右键，选择`Insert before`，插入`UEFI_FSS`文件夹的`native.ffs`。此时应该如下所示：
 
-![8](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/8.png)
+![](./images/3.png)
 
 双击展开`native.ffs`（它没有名字，但GUID是`2136252F-5F7C-486D-B89F-545EC42AD45C`），在`Raw section`上右键，选择`Replace body`，然后选取前文中生成的`native.exe`进行替换。
 
-![9](https://raw.githubusercontent.com/Push3AX/GrabAccess/main/images/9.png)
+![](./images/4.png)
 
 最后，点击File菜单的`Save image file`，保存固件到文件。
 
@@ -99,22 +105,14 @@ GrabAccess可以被植入到计算机主板的UEFI固件。实现硬件级别的
 
 如果没有成功，可以尝试以下操作：
 
-1. 关闭UEFI设置中的`Security Boot`和`CSM`，确定操作系统是通过UEFI模式加载的。
+1. 关闭UEFI设置中的`Secure Boot`和`CSM`，确定操作系统是通过UEFI模式加载的。
 2. 向固件插入`UEFI_FSS`文件夹下的`pcddxe.ffs`（方法同前文。但注意，这个模块可能会与其它模块冲突造成不能开机，仅建议在使用编程器的情况下尝试！）
 
+------
 
+## 原理解析
 
-## 系统支持情况
-
-GrabAccess仅支持UEFI引导下的Windows系统，目前仅支持x64系统。
-
-已测试Windows 10 (1803, 22H2)和Windows 11(23H2)。包括使用了TPM、联网账户、Pin码的情况。但不支持绕过Security Boot。
-
-
-
-# 原理解析
-
-## Windows Platform Binary Table
+### Windows Platform Binary Table
 
 和Kon-boot篡改Windows内核不同，GrabAccess的工作原理，源自于Windows的一项合法后门：WPBT（Windows Platform Binary Table）。
 
@@ -122,35 +120,35 @@ WPBT常用于计算机制造商植入驱动管理软件、防丢软件。类似B
 
 WPBT的原始设计，应当是由生产商在主板的UEFI固件中插入一个特定的模块实现。但是，通过劫持UEFI的引导过程，攻击者可以插入WPBT条目，而无需修改主板固件。
 
+### GrabAccess做了什么
 
+GrabAccess包含三个阶段。
 
-## GrabAccess做了什么
+Stage1是一个UEFI应用程序（或者UEFI DXE驱动），用于在UEFI环境下向ACPI表写入WPBT条目。U盘版本会读取启动分区中的`native.exe`，写入WPBT后继续启动Windows Boot Manager；固件植入版本则会从固件volume中读取内嵌的`native.exe`，从而在每次启动时重新触发WPBT流程。
 
-GrabAccess包含两个部分。
+Stage2是一个Windows Native Application，在Windows登录前由WPBT执行。WPBT只能加载NativeApp，此时系统还没有进入完整的Win32环境。其负责读取自身末尾的打包信息，根据内容决定进入哪一种模式。
 
-其一是用于写入WPBT条目的UEFI应用程序，即源码中的Stage1-UEFI。它们用于在UEFI环境下向ACPI表写入WPBT条目。
+若为自定义payload模式，则将用户指定的payload释放到`C:\Windows\System32\GrabAccess.exe`，并写入`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\GrabAccessAutorun`启动项。
 
-其二是一个Windows Native Application，即源码中的Stage2-NativeNT，用于写出最终Payload和添加启动项。
+若没有自定义payload，Stage2会将Stage3的各组件`Injector.exe`、`GrabAccessMsvpBypass.dll`、`GrabAccessExplorerHost.exe`和`GrabAccessFallback.exe`，写入`C:\Windows\System32`。然后IFEO劫持LogonUI，在启动过程中执行GrabAccess辅助脚本。
 
+当登陆方式为本地账号 + 密码 / PIN / 图片密码时，Stage2使用`Injector.exe`将`GrabAccessMsvpBypass.dll`注入`lsass.exe`。此DLL会 hook `NtlmShared!MsvpPasswordValidate`，让密码校验函数无条件返回成功，实现输入任意密码即可登录。
 
+当登陆方式为Microsoft在线账号、Entra ID/Azure AD、域账号，或开启了RunAsPPL/protected LSASS等无法绕过的情况时，Stage2会启动`GrabAccessFallback.exe`，提供三个入口：文件管理、命令行、账户管理。文件管理器为`GrabAccessExplorerHost.exe`，命令行入口会打开SYSTEM权限的`cmd.exe`，账户管理入口会打开`netplwiz.exe`。
 
-## Native Application做了什么
-
-WPBT所加载的应用程序，并非常规的Win32程序。而是一个Windows Native Application。它在Windows Native NT阶段执行，早于用户登录。但是Windows提供给Native APP的API，也少于Win32程序。	
-
-源码中的Stage2-NativeNT负责将其末尾的最终Payload（即用户打包的指定程序）写出到`C:\\Windows\\System32\\GrabAccess.exe`，并为其添加启动项`HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\GrabAccess`。
-
-如果其末尾没有Payload，则通过IFEO劫持Logonui.exe，在Windows登录时显示cmd.exe和netplwiz.exe
-
-
+------
 
 ## Credits
 
 1. [Windows Platform Binary Table (WPBT) ](https://download.microsoft.com/download/8/a/2/8a2fb72d-9b96-4e2d-a559-4a27cf905a80/windows-platform-binary-table.docx)
 2. [WPBT-Builder ](https://github.com/tandasat/WPBT-Builder)
 3. [Windows Native App by Fox](http://fox28813018.blogspot.com/2019/05/windows-platform-binary-table-wpbt-wpbt.html)
+4. [Nefarius Injector](https://github.com/nefarius/Injector)
+
+------
 
 ## 404星链计划
+
 <a href="https://github.com/knownsec/404StarLink2.0-Galaxy" target="_blank"><img src="https://raw.githubusercontent.com/knownsec/404StarLink-Project/master/logo.png" align="middle"/></a>
 
 GrabAccess 现已加入 [404星链计划](https://github.com/knownsec/404StarLink).
