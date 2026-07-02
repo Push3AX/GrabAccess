@@ -8,12 +8,12 @@
 
 With physical access to the target device, GrabAccess can:
 
-1. Bypass supported Windows local-account sign-in paths (local account + password / PIN / picture password)
+1. Bypass Windows local-account sign-in (local account + password / PIN / picture password)
 2. Provide file management and account management without signing in when the current sign-in method cannot be bypassed
 3. Automatically implant a specified program and add it to startup
 4. Survive operating system reinstallations or hard drive replacement by modifying the motherboard UEFI firmware (Bootkit)
 
-However, GrabAccess does not support bypassing Secure Boot, MBR boot, or 32-bit operating systems.
+GrabAccess does not support bypassing Secure Boot, MBR boot, or 32-bit operating systems.
 
 ------
 
